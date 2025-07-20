@@ -21,9 +21,17 @@ class CombTSAgent:
             alpha: Prior alpha parameter for Beta distribution (default: 1.0)
             beta: Prior beta parameter for Beta distribution (default: 1.0)
         """
+        if not isinstance(environment, RoutingEnvironment):
+            raise TypeError("environment must be a RoutingEnvironment instance")
+        if alpha <= 0 or beta <= 0:
+            raise ValueError("alpha and beta must be positive")
+        
         self.environment = environment
         self.alpha = alpha
         self.beta = beta
+        
+        # Initialize random number generator for thread safety
+        self.rng = np.random.RandomState()
         
         # Initialize Beta distribution parameters for each edge
         self.edge_alpha = {}
@@ -33,6 +41,10 @@ class CombTSAgent:
         for edge in environment.get_all_edges():
             self.edge_alpha[edge] = alpha
             self.edge_beta[edge] = beta
+    
+    def set_random_seed(self, seed: int):
+        """Set random seed for reproducibility."""
+        self.rng.seed(seed)
     
     def sample_edge_means(self) -> Dict[Tuple[int, int], float]:
         """
@@ -44,8 +56,8 @@ class CombTSAgent:
         edge_means = {}
         
         for edge in self.environment.get_all_edges():
-            # Sample from Beta distribution
-            sampled_mean = np.random.beta(self.edge_alpha[edge], self.edge_beta[edge])
+            # Sample from Beta distribution using instance RNG
+            sampled_mean = self.rng.beta(self.edge_alpha[edge], self.edge_beta[edge])
             edge_means[edge] = sampled_mean
         
         return edge_means
@@ -85,7 +97,8 @@ class CombTSAgent:
     def update(self, path: List[int], reward: float):
         """
         Update Beta distribution parameters based on observed reward.
-        Reward is distributed equally among all edges in the path.
+        Since we can't observe individual edge rewards, we use the total path reward
+        to make probabilistic updates to edges.
         
         Args:
             path: Selected path as list of nodes
@@ -100,19 +113,19 @@ class CombTSAgent:
         if num_edges == 0:
             return
         
-        # Distribute reward equally among edges
-        edge_reward = reward / num_edges
+        # Since we observe path reward but need to update edge parameters,
+        # we treat the fraction of edges that "succeeded" as reward/num_edges
+        # This is a simplification but reasonable for the bandit setting
+        success_rate = reward / num_edges
         
-        # Update Beta parameters for each edge in the path
+        # Update each edge based on the success rate
         for edge in path_edges:
             if edge in self.edge_alpha:
-                # Convert edge_reward to binary (0 or 1) for Beta distribution
-                # We use the probability interpretation: edge_reward represents success probability
-                if edge_reward > 0:
-                    # Treat as success
+                # Use the success rate to probabilistically update
+                # This treats each edge as having success_rate probability of success
+                if self.rng.random() < success_rate:
                     self.edge_alpha[edge] += 1
                 else:
-                    # Treat as failure
                     self.edge_beta[edge] += 1
     
     def get_edge_estimates(self) -> Dict[Tuple[int, int], float]:
@@ -128,7 +141,8 @@ class CombTSAgent:
             if edge in self.edge_alpha:
                 alpha = self.edge_alpha[edge]
                 beta = self.edge_beta[edge]
-                mean_estimate = alpha / (alpha + beta) if (alpha + beta) > 0 else 0.5
+                total = alpha + beta
+                mean_estimate = alpha / total if total > 0 else 0.5
                 edge_estimates[edge] = mean_estimate
         
         return edge_estimates
