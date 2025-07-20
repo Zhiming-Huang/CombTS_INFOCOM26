@@ -1,7 +1,9 @@
 import numpy as np
 from typing import List, Tuple, Dict
+
 import random
 from routing_environment import RoutingEnvironment
+
 
 
 class CombTSAgent:

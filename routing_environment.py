@@ -1,11 +1,13 @@
 import numpy as np
 import networkx as nx
+
 from typing import List, Tuple, Dict, Set
 import random
 
 
 class RoutingEnvironment:
     """
+
     RoutingEnvironment class responsible for simulating the network environment,
     including link availability and reward generation.
     """
@@ -16,6 +18,7 @@ class RoutingEnvironment:
                  edge_reward_probs: Dict[Tuple[int, int], float],
                  source: int = 0,
                  target: int = None):
+
         """
         Initialize the routing environment.
         
@@ -53,6 +56,7 @@ class RoutingEnvironment:
         return available_graph
     
     def get_feasible_paths(self, available_graph: nx.DiGraph = None) -> List[List[int]]:
+
         """
         Find all feasible paths from source to target in the available graph.
         
@@ -87,6 +91,7 @@ class RoutingEnvironment:
             return 0.0
         
         total_reward = 0.0
+        
         for i in range(len(path) - 1):
             u, v = path[i], path[i + 1]
             if (u, v) in self.edge_reward_probs:
@@ -98,6 +103,7 @@ class RoutingEnvironment:
     
     def get_path_edges(self, path: List[int]) -> List[Tuple[int, int]]:
         """
+
         Get list of edges in a path.
         
         Args:
