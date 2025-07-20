@@ -6,6 +6,10 @@ This script runs basic tests to verify that the RoutingEnvironment and
 CombTSAgent classes work correctly.
 """
 
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 import numpy as np
 import networkx as nx
 from routing_environment import RoutingEnvironment
