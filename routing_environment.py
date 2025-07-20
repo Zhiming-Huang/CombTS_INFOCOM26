@@ -1,104 +1,88 @@
 import numpy as np
 import networkx as nx
-from typing import List, Tuple, Dict
+
+from typing import List, Tuple, Dict, Set
 import random
 
 
 class RoutingEnvironment:
     """
-    Environment class for simulating network routing with link availability and reward generation.
-    
-    This class handles:
-    - Network graph with edge availability probabilities
-    - Sampling available subgraphs based on link availability
-    - Finding feasible paths between source and destination
-    - Generating rewards for paths using Bernoulli sampling
+
+    RoutingEnvironment class responsible for simulating the network environment,
+    including link availability and reward generation.
     """
     
     def __init__(self, 
-                 graph: nx.Graph, 
-                 availability_probs: Dict[Tuple[int, int], float],
-                 reward_means: Dict[Tuple[int, int], float],
-                 source: int, 
-                 target: int):
+                 num_nodes: int, 
+                 edge_availability_probs: Dict[Tuple[int, int], float],
+                 edge_reward_probs: Dict[Tuple[int, int], float],
+                 source: int = 0,
+                 target: int = None):
+
         """
         Initialize the routing environment.
         
         Args:
-            graph: NetworkX graph representing the network topology
-            availability_probs: Dictionary mapping edges to their availability probabilities
-            reward_means: Dictionary mapping edges to their mean rewards (for Bernoulli sampling)
+            num_nodes: Number of nodes in the network
+            edge_availability_probs: Dictionary mapping (u, v) -> probability of edge being available
+            edge_reward_probs: Dictionary mapping (u, v) -> probability of edge having reward 1
             source: Source node for routing
-            target: Target node for routing
+            target: Target node for routing (defaults to num_nodes - 1)
         """
-        self.graph = graph
-        self.availability_probs = availability_probs
-        self.reward_means = reward_means
+        self.num_nodes = num_nodes
+        self.edge_availability_probs = edge_availability_probs
+        self.edge_reward_probs = edge_reward_probs
         self.source = source
-        self.target = target
+        self.target = target if target is not None else num_nodes - 1
         
-        # Validate that all edges have availability and reward probabilities
-        for edge in self.graph.edges():
-            edge_tuple = tuple(sorted(edge))
-            if edge_tuple not in self.availability_probs:
-                raise ValueError(f"Edge {edge_tuple} missing availability probability")
-            if edge_tuple not in self.reward_means:
-                raise ValueError(f"Edge {edge_tuple} missing reward mean")
+        # Create the full network graph
+        self.full_graph = nx.DiGraph()
+        for (u, v) in edge_availability_probs.keys():
+            self.full_graph.add_edge(u, v)
     
-    def sample_available_graph(self) -> nx.Graph:
+    def sample_available_graph(self) -> nx.DiGraph:
         """
-        Sample an available subgraph based on edge availability probabilities.
+        Generate available subgraph by randomly sampling edges based on availability probabilities.
         
         Returns:
-            NetworkX graph representing the available network at this time step
+            Available subgraph as a NetworkX DiGraph
         """
-        available_graph = nx.Graph()
-        available_graph.add_nodes_from(self.graph.nodes())
+        available_graph = nx.DiGraph()
         
-        for edge in self.graph.edges():
-            edge_tuple = tuple(sorted(edge))
-            availability_prob = self.availability_probs[edge_tuple]
-            
-            # Sample edge availability using Bernoulli distribution
-            if np.random.random() < availability_prob:
-                available_graph.add_edge(edge[0], edge[1])
+        for (u, v), prob in self.edge_availability_probs.items():
+            if random.random() < prob:
+                available_graph.add_edge(u, v)
         
         return available_graph
     
-    def get_feasible_paths(self, available_graph: nx.Graph, max_paths: int = None) -> List[List[int]]:
+    def get_feasible_paths(self, available_graph: nx.DiGraph = None) -> List[List[int]]:
+
         """
         Find all feasible paths from source to target in the available graph.
         
         Args:
-            available_graph: The currently available network graph
-            max_paths: Maximum number of paths to return (None for all paths)
+            available_graph: Available subgraph (if None, samples a new one)
             
         Returns:
-            List of paths, where each path is a list of node IDs
+            List of feasible paths as lists of nodes
         """
+        if available_graph is None:
+            available_graph = self.sample_available_graph()
+        
         try:
-            # Use simple_paths to find all paths (can be computationally expensive for large graphs)
-            if max_paths is None:
-                paths = list(nx.all_simple_paths(available_graph, self.source, self.target))
-            else:
-                paths = []
-                path_generator = nx.all_simple_paths(available_graph, self.source, self.target)
-                for i, path in enumerate(path_generator):
-                    if i >= max_paths:
-                        break
-                    paths.append(path)
-            
-            return paths
+            # Find all simple paths from source to target
+            all_paths = list(nx.all_simple_paths(available_graph, self.source, self.target))
+            return all_paths
         except nx.NetworkXNoPath:
-            # No path exists between source and target
             return []
     
     def get_reward(self, path: List[int]) -> float:
         """
-        Generate reward for a given path using Bernoulli sampling for each edge.
+        Calculate reward for a given path.
+        Each edge reward is sampled from Bernoulli distribution.
         
         Args:
-            path: List of node IDs representing the path
+            path: List of nodes representing the path
             
         Returns:
             Total reward for the path (sum of edge rewards)
@@ -109,102 +93,35 @@ class RoutingEnvironment:
         total_reward = 0.0
         
         for i in range(len(path) - 1):
-            edge = (path[i], path[i + 1])
-            edge_tuple = tuple(sorted(edge))
-            
-            # Sample edge reward using Bernoulli distribution
-            reward_mean = self.reward_means[edge_tuple]
-            edge_reward = np.random.binomial(1, reward_mean)
-            total_reward += edge_reward
+            u, v = path[i], path[i + 1]
+            if (u, v) in self.edge_reward_probs:
+                # Sample reward from Bernoulli distribution
+                edge_reward = 1.0 if random.random() < self.edge_reward_probs[(u, v)] else 0.0
+                total_reward += edge_reward
         
         return total_reward
     
     def get_path_edges(self, path: List[int]) -> List[Tuple[int, int]]:
         """
-        Convert a path (list of nodes) to a list of edges.
+
+        Get list of edges in a path.
         
         Args:
-            path: List of node IDs representing the path
+            path: List of nodes representing the path
             
         Returns:
-            List of edges as tuples
+            List of edges as (u, v) tuples
         """
-        if len(path) < 2:
-            return []
-        
         edges = []
         for i in range(len(path) - 1):
-            edge = tuple(sorted([path[i], path[i + 1]]))
-            edges.append(edge)
-        
+            edges.append((path[i], path[i + 1]))
         return edges
     
-    def is_path_available(self, path: List[int], available_graph: nx.Graph) -> bool:
+    def get_all_edges(self) -> Set[Tuple[int, int]]:
         """
-        Check if a given path is available in the current graph.
+        Get all edges in the network.
         
-        Args:
-            path: List of node IDs representing the path
-            available_graph: The currently available network graph
-            
         Returns:
-            True if all edges in the path are available, False otherwise
+            Set of all edges as (u, v) tuples
         """
-        if len(path) < 2:
-            return False
-        
-        for i in range(len(path) - 1):
-            if not available_graph.has_edge(path[i], path[i + 1]):
-                return False
-        
-        return True
-
-
-def create_sample_network() -> Tuple[nx.Graph, Dict, Dict, int, int]:
-    """
-    Create a sample network for testing purposes.
-    
-    Returns:
-        Tuple containing (graph, availability_probs, reward_means, source, target)
-    """
-    # Create a simple grid network
-    G = nx.Graph()
-    
-    # Add nodes
-    nodes = [(i, j) for i in range(3) for j in range(3)]
-    node_mapping = {(i, j): i * 3 + j for i, j in nodes}
-    reverse_mapping = {v: k for k, v in node_mapping.items()}
-    
-    G.add_nodes_from(range(9))
-    
-    # Add edges (grid connectivity)
-    edges = []
-    for i in range(3):
-        for j in range(3):
-            current = node_mapping[(i, j)]
-            # Right neighbor
-            if j < 2:
-                neighbor = node_mapping[(i, j + 1)]
-                edges.append((current, neighbor))
-            # Down neighbor
-            if i < 2:
-                neighbor = node_mapping[(i + 1, j)]
-                edges.append((current, neighbor))
-    
-    G.add_edges_from(edges)
-    
-    # Set availability probabilities (higher for some edges)
-    availability_probs = {}
-    reward_means = {}
-    
-    for edge in G.edges():
-        edge_tuple = tuple(sorted(edge))
-        # Random availability between 0.6 and 0.9
-        availability_probs[edge_tuple] = np.random.uniform(0.6, 0.9)
-        # Random reward mean between 0.3 and 0.8
-        reward_means[edge_tuple] = np.random.uniform(0.3, 0.8)
-    
-    source = 0  # Top-left corner
-    target = 8  # Bottom-right corner
-    
-    return G, availability_probs, reward_means, source, target
+        return set(self.edge_availability_probs.keys())

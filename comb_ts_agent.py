@@ -1,249 +1,157 @@
 import numpy as np
 from typing import List, Tuple, Dict
-from scipy.stats import beta
-import logging
+
+import random
+from routing_environment import RoutingEnvironment
+
 
 
 class CombTSAgent:
     """
-    Combinatorial Thompson Sampling agent for network routing.
-    
-    This agent maintains Beta distributions for each edge's reward probability
-    and uses Thompson Sampling to select paths from the feasible set.
+    CombTSAgent class implementing combinatorial Thompson Sampling strategy
+    for selecting paths and updating posterior distributions.
     """
     
-    def __init__(self, edges: List[Tuple[int, int]], alpha_prior: float = 1.0, beta_prior: float = 1.0):
+    def __init__(self, environment: RoutingEnvironment, alpha: float = 1.0, beta: float = 1.0):
         """
-        Initialize the Thompson Sampling agent.
+        Initialize the combinatorial Thompson Sampling agent.
         
         Args:
-            edges: List of all possible edges in the network
-            alpha_prior: Alpha parameter for Beta prior (successes + 1)
-            beta_prior: Beta parameter for Beta prior (failures + 1)
+            environment: RoutingEnvironment instance
+            alpha: Prior alpha parameter for Beta distribution (default: 1.0)
+            beta: Prior beta parameter for Beta distribution (default: 1.0)
         """
-        self.edges = [tuple(sorted(edge)) for edge in edges]
-        self.alpha_prior = alpha_prior
-        self.beta_prior = beta_prior
+        self.environment = environment
+        self.alpha = alpha
+        self.beta = beta
         
         # Initialize Beta distribution parameters for each edge
-        # alpha = successes + alpha_prior, beta = failures + beta_prior
-        self.alpha_params = {edge: alpha_prior for edge in self.edges}
-        self.beta_params = {edge: beta_prior for edge in self.edges}
+        self.edge_alpha = {}
+        self.edge_beta = {}
         
-        # Keep track of total observations for each edge
-        self.edge_observations = {edge: 0 for edge in self.edges}
-        
-        # Logging for debugging
-        self.logger = logging.getLogger(__name__)
+        # Initialize all edges with prior parameters
+        for edge in environment.get_all_edges():
+            self.edge_alpha[edge] = alpha
+            self.edge_beta[edge] = beta
     
     def sample_edge_means(self) -> Dict[Tuple[int, int], float]:
         """
-        Sample reward estimates for each edge from their respective Beta distributions.
+        Sample reward estimates for each edge from their Beta distributions.
         
         Returns:
-            Dictionary mapping edges to their sampled reward estimates
+            Dictionary mapping edges to sampled reward estimates
         """
-        sampled_means = {}
+        edge_means = {}
         
-        for edge in self.edges:
-            alpha = self.alpha_params[edge]
-            beta_param = self.beta_params[edge]
-            
+        for edge in self.environment.get_all_edges():
             # Sample from Beta distribution
-            sampled_mean = np.random.beta(alpha, beta_param)
-            sampled_means[edge] = sampled_mean
+            sampled_mean = np.random.beta(self.edge_alpha[edge], self.edge_beta[edge])
+            edge_means[edge] = sampled_mean
         
-        return sampled_means
-    
-    def get_path_score(self, path: List[int], edge_means: Dict[Tuple[int, int], float]) -> float:
-        """
-        Calculate the total score for a path based on sampled edge means.
-        
-        Args:
-            path: List of node IDs representing the path
-            edge_means: Dictionary of sampled edge reward estimates
-            
-        Returns:
-            Total score for the path (sum of edge scores)
-        """
-        if len(path) < 2:
-            return 0.0
-        
-        total_score = 0.0
-        
-        for i in range(len(path) - 1):
-            edge = tuple(sorted([path[i], path[i + 1]]))
-            if edge in edge_means:
-                total_score += edge_means[edge]
-            else:
-                # Edge not in our model, assign low score
-                total_score += 0.0
-        
-        return total_score
+        return edge_means
     
     def select_path(self, feasible_paths: List[List[int]]) -> List[int]:
         """
-        Select the best path from feasible paths using Thompson Sampling.
+        Select the best path based on sampled reward estimates.
         
         Args:
-            feasible_paths: List of feasible paths, each path is a list of node IDs
+            feasible_paths: List of feasible paths to choose from
             
         Returns:
-            Selected path (list of node IDs)
+            Selected path as list of nodes
         """
         if not feasible_paths:
             return []
         
-        if len(feasible_paths) == 1:
-            return feasible_paths[0]
-        
-        # Sample edge means from Beta distributions
+        # Sample edge means
         edge_means = self.sample_edge_means()
         
-        # Calculate scores for all feasible paths
+        # Calculate path scores
         path_scores = []
         for path in feasible_paths:
-            score = self.get_path_score(path, edge_means)
-            path_scores.append(score)
+            path_score = 0.0
+            path_edges = self.environment.get_path_edges(path)
+            
+            for edge in path_edges:
+                if edge in edge_means:
+                    path_score += edge_means[edge]
+            
+            path_scores.append(path_score)
         
         # Select path with highest score
-        best_idx = np.argmax(path_scores)
-        selected_path = feasible_paths[best_idx]
-        
-        self.logger.debug(f"Selected path {selected_path} with score {path_scores[best_idx]}")
-        return selected_path
+        best_path_idx = np.argmax(path_scores)
+        return feasible_paths[best_path_idx]
     
     def update(self, path: List[int], reward: float):
         """
         Update Beta distribution parameters based on observed reward.
-        
-        The reward is distributed equally among all edges in the path.
+        Reward is distributed equally among all edges in the path.
         
         Args:
-            path: The selected path (list of node IDs)
-            reward: Total reward observed for the path
+            path: Selected path as list of nodes
+            reward: Observed reward for the path
         """
-        if len(path) < 2:
+        if not path or len(path) < 2:
             return
         
-        # Get edges in the path
-        path_edges = []
-        for i in range(len(path) - 1):
-            edge = tuple(sorted([path[i], path[i + 1]]))
-            path_edges.append(edge)
+        path_edges = self.environment.get_path_edges(path)
+        num_edges = len(path_edges)
         
-        if not path_edges:
+        if num_edges == 0:
             return
         
         # Distribute reward equally among edges
-        # For Bernoulli rewards, we assume each edge gets reward/num_edges success probability
-        edge_reward = reward / len(path_edges)
+        edge_reward = reward / num_edges
         
         # Update Beta parameters for each edge in the path
         for edge in path_edges:
-            if edge in self.alpha_params:
-                # For Bernoulli rewards: reward is either 0 or 1 per edge
-                # We use the edge_reward as success probability
-                self.alpha_params[edge] += edge_reward
-                self.beta_params[edge] += (1 - edge_reward)
-                self.edge_observations[edge] += 1
-                
-                self.logger.debug(f"Updated edge {edge}: alpha={self.alpha_params[edge]:.3f}, "
-                                f"beta={self.beta_params[edge]:.3f}")
+            if edge in self.edge_alpha:
+                # Convert edge_reward to binary (0 or 1) for Beta distribution
+                # We use the probability interpretation: edge_reward represents success probability
+                if edge_reward > 0:
+                    # Treat as success
+                    self.edge_alpha[edge] += 1
+                else:
+                    # Treat as failure
+                    self.edge_beta[edge] += 1
     
-    def update_with_edge_rewards(self, path: List[int], edge_rewards: Dict[Tuple[int, int], float]):
+    def get_edge_estimates(self) -> Dict[Tuple[int, int], float]:
         """
-        Update Beta distribution parameters with individual edge rewards.
-        
-        Args:
-            path: The selected path (list of node IDs)
-            edge_rewards: Dictionary mapping edges to their individual rewards
-        """
-        if len(path) < 2:
-            return
-        
-        # Get edges in the path
-        for i in range(len(path) - 1):
-            edge = tuple(sorted([path[i], path[i + 1]]))
-            
-            if edge in edge_rewards and edge in self.alpha_params:
-                reward = edge_rewards[edge]
-                # For Bernoulli rewards: reward is 0 or 1
-                self.alpha_params[edge] += reward
-                self.beta_params[edge] += (1 - reward)
-                self.edge_observations[edge] += 1
-                
-                self.logger.debug(f"Updated edge {edge} with reward {reward}: "
-                                f"alpha={self.alpha_params[edge]:.3f}, "
-                                f"beta={self.beta_params[edge]:.3f}")
-    
-    def get_edge_confidence_intervals(self, confidence: float = 0.95) -> Dict[Tuple[int, int], Tuple[float, float]]:
-        """
-        Get confidence intervals for edge reward estimates.
-        
-        Args:
-            confidence: Confidence level (default 0.95)
-            
-        Returns:
-            Dictionary mapping edges to their (lower_bound, upper_bound) confidence intervals
-        """
-        alpha_level = 1 - confidence
-        intervals = {}
-        
-        for edge in self.edges:
-            alpha = self.alpha_params[edge]
-            beta_param = self.beta_params[edge]
-            
-            # Calculate confidence interval using Beta distribution
-            lower = beta.ppf(alpha_level / 2, alpha, beta_param)
-            upper = beta.ppf(1 - alpha_level / 2, alpha, beta_param)
-            
-            intervals[edge] = (lower, upper)
-        
-        return intervals
-    
-    def get_edge_posterior_means(self) -> Dict[Tuple[int, int], float]:
-        """
-        Get posterior mean estimates for each edge.
+        Get current mean estimates for all edges.
         
         Returns:
-            Dictionary mapping edges to their posterior mean estimates
+            Dictionary mapping edges to their current mean estimates
         """
-        means = {}
+        edge_estimates = {}
         
-        for edge in self.edges:
-            alpha = self.alpha_params[edge]
-            beta_param = self.beta_params[edge]
-            
-            # Posterior mean of Beta distribution
-            mean = alpha / (alpha + beta_param)
-            means[edge] = mean
+        for edge in self.environment.get_all_edges():
+            if edge in self.edge_alpha:
+                alpha = self.edge_alpha[edge]
+                beta = self.edge_beta[edge]
+                mean_estimate = alpha / (alpha + beta) if (alpha + beta) > 0 else 0.5
+                edge_estimates[edge] = mean_estimate
         
-        return means
+        return edge_estimates
     
-    def reset(self):
-        """Reset the agent to initial state."""
-        self.alpha_params = {edge: self.alpha_prior for edge in self.edges}
-        self.beta_params = {edge: self.beta_prior for edge in self.edges}
-        self.edge_observations = {edge: 0 for edge in self.edges}
-    
-    def get_statistics(self) -> Dict:
+    def get_edge_confidence(self) -> Dict[Tuple[int, int], float]:
         """
-        Get current statistics about the agent's state.
+        Get confidence intervals for edge estimates.
         
         Returns:
-            Dictionary containing various statistics
+            Dictionary mapping edges to their confidence (variance of Beta distribution)
         """
-        posterior_means = self.get_edge_posterior_means()
-        confidence_intervals = self.get_edge_confidence_intervals()
+        edge_confidence = {}
         
-        stats = {
-            'total_observations': sum(self.edge_observations.values()),
-            'edge_observations': self.edge_observations.copy(),
-            'posterior_means': posterior_means,
-            'confidence_intervals': confidence_intervals,
-            'alpha_params': self.alpha_params.copy(),
-            'beta_params': self.beta_params.copy()
-        }
+        for edge in self.environment.get_all_edges():
+            if edge in self.edge_alpha:
+                alpha = self.edge_alpha[edge]
+                beta = self.edge_beta[edge]
+                total = alpha + beta
+                if total > 0:
+                    # Variance of Beta distribution
+                    variance = (alpha * beta) / ((total ** 2) * (total + 1))
+                    edge_confidence[edge] = variance
+                else:
+                    edge_confidence[edge] = float('inf')
         
-        return stats
+        return edge_confidence
