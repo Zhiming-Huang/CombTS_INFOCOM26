@@ -68,6 +68,9 @@ class RoutingEnvironment:
         """
         available_graph = nx.DiGraph()
         
+        # Add all nodes to ensure they exist in the graph
+        available_graph.add_nodes_from(range(self.num_nodes))
+        
         for (u, v), prob in self.edge_availability_probs.items():
             if random.random() < prob:
                 available_graph.add_edge(u, v)

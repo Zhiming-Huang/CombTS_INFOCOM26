@@ -18,13 +18,11 @@ def test_routing_environment():
     print("Testing RoutingEnvironment...")
     
     # Create a simple test network
-    G = nx.Graph()
-    G.add_edges_from([(0, 1), (1, 2), (0, 2)])
-    
+    num_nodes = 3
     availability_probs = {(0, 1): 0.8, (0, 2): 0.6, (1, 2): 0.9}
     reward_means = {(0, 1): 0.7, (0, 2): 0.5, (1, 2): 0.8}
     
-    env = RoutingEnvironment(G, availability_probs, reward_means, source=0, target=2)
+    env = RoutingEnvironment(num_nodes, availability_probs, reward_means, source=0, target=2)
     
     # Test sampling available graph
     available_graph = env.sample_available_graph()
