@@ -12,11 +12,12 @@ import logging
 from typing import List, Dict, Tuple
 import time
 
-from routing_environment import RoutingEnvironment, create_sample_network
+from routing_environment import RoutingEnvironment
+from main_simulation import create_sample_network
 from comb_ts_agent import CombTSAgent
 
 
-def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) -> Dict:
+def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42, track_history: bool = True) -> Dict:
     """
     Run a simulation of the sleeping combinatorial bandit routing problem.
     
@@ -33,14 +34,16 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
     
     # Create sample network
     print("Creating sample network...")
-    graph, availability_probs, reward_means, source, target = create_sample_network()
+    edge_availability_probs, edge_reward_probs = create_sample_network()
+    source, target = 0, 2  # Hard-coded for simple 3-node network
+    num_nodes = 3
     
-    print(f"Network: {len(graph.nodes())} nodes, {len(graph.edges())} edges")
+    print(f"Network: {num_nodes} nodes, {len(edge_availability_probs)} edges")
     print(f"Source: {source}, Target: {target}")
     
     # Initialize environment and agent
-    env = RoutingEnvironment(graph, availability_probs, reward_means, source, target)
-    agent = CombTSAgent(list(graph.edges()), alpha_prior=1.0, beta_prior=1.0)
+    env = RoutingEnvironment(num_nodes, edge_availability_probs, edge_reward_probs, source, target)
+    agent = CombTSAgent(env, alpha=1.0, beta=1.0)
     
     # Track simulation results
     results = {
@@ -54,9 +57,12 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
     }
     
     cumulative_reward = 0.0
-    best_expected_reward = max([sum(reward_means[tuple(sorted([path[i], path[i+1]]))] 
-                                   for i in range(len(path)-1)) 
-                               for path in env.get_feasible_paths(graph)])
+    # Calculate best expected reward from all possible paths in full graph
+    all_paths = env.get_feasible_paths(env.full_graph)
+    best_expected_reward = 0.0
+    if all_paths:
+        best_expected_reward = max([sum(edge_reward_probs[edge] for edge in env.get_path_edges(path)) 
+                                   for path in all_paths])
     cumulative_regret = 0.0
     
     print(f"\nStarting simulation for {num_rounds} rounds...")
@@ -66,7 +72,7 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
         available_graph = env.sample_available_graph()
         
         # Get feasible paths in current available graph
-        feasible_paths = env.get_feasible_paths(available_graph, max_paths=max_paths)
+        feasible_paths = env.get_feasible_paths(available_graph)
         
         if not feasible_paths:
             # No paths available, skip this round
@@ -89,7 +95,7 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
             expected_rewards = []
             for path in feasible_paths:
                 path_edges = env.get_path_edges(path)
-                expected_reward = sum(reward_means[edge] for edge in path_edges)
+                expected_reward = sum(edge_reward_probs[edge] for edge in path_edges)
                 expected_rewards.append(expected_reward)
             round_optimal = max(expected_rewards)
         else:
@@ -100,13 +106,14 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
         
         # Update tracking
         cumulative_reward += reward
-        results['rounds'].append(round_num)
-        results['rewards'].append(reward)
-        results['cumulative_rewards'].append(cumulative_reward)
-        results['selected_paths'].append(selected_path.copy() if selected_path else [])
-        results['num_feasible_paths'].append(len(feasible_paths))
-        results['regret'].append(cumulative_regret)
-        results['path_lengths'].append(path_length)
+        if track_history:
+            results['rounds'].append(round_num)
+            results['rewards'].append(reward)
+            results['cumulative_rewards'].append(cumulative_reward)
+            results['selected_paths'].append(selected_path.copy() if selected_path else [])
+            results['num_feasible_paths'].append(len(feasible_paths))
+            results['regret'].append(cumulative_regret)
+            results['path_lengths'].append(path_length)
         
         # Print progress
         if (round_num + 1) % 100 == 0:
@@ -114,16 +121,18 @@ def run_simulation(num_rounds: int = 1000, max_paths: int = 10, seed: int = 42) 
             print(f"Round {round_num + 1}: Avg reward = {avg_reward:.3f}, "
                   f"Cumulative regret = {cumulative_regret:.3f}")
     
-    # Get final statistics from agent
-    final_stats = agent.get_statistics()
-    results['final_stats'] = final_stats
+    # Store final results
+    results['final_reward'] = cumulative_reward
+    results['final_regret'] = cumulative_regret
+    results['average_reward'] = cumulative_reward / num_rounds
+    results['average_regret'] = cumulative_regret / num_rounds
     
     print(f"\nSimulation completed!")
     print(f"Total cumulative reward: {cumulative_reward:.3f}")
     print(f"Average reward per round: {cumulative_reward / num_rounds:.3f}")
     print(f"Total cumulative regret: {cumulative_regret:.3f}")
     
-    return results
+    return results, agent, env
 
 
 def plot_results(results: Dict, save_plots: bool = True):
@@ -179,34 +188,35 @@ def plot_results(results: Dict, save_plots: bool = True):
     plt.show()
 
 
-def analyze_learned_parameters(results: Dict):
+def analyze_learned_parameters(agent: CombTSAgent, env: RoutingEnvironment):
     """
     Analyze the learned parameters from the agent.
     
     Args:
-        results: Results dictionary from run_simulation
+        agent: The trained agent
+        env: The environment
     """
     print("\n" + "="*50)
     print("LEARNED PARAMETERS ANALYSIS")
     print("="*50)
     
-    final_stats = results['final_stats']
-    posterior_means = final_stats['posterior_means']
-    confidence_intervals = final_stats['confidence_intervals']
-    edge_observations = final_stats['edge_observations']
+    edge_estimates = agent.get_edge_estimates()
+    edge_confidence = agent.get_edge_confidence()
     
-    print(f"Total observations: {final_stats['total_observations']}")
+    total_observations = sum(agent.edge_alpha[edge] + agent.edge_beta[edge] - 2 
+                           for edge in env.get_all_edges())
+    
+    print(f"Total observations: {total_observations}")
     print("\nEdge-wise analysis:")
-    print(f"{'Edge':<15} {'Observations':<12} {'Posterior Mean':<15} {'95% CI':<20}")
+    print(f"{'Edge':<15} {'Observations':<12} {'Posterior Mean':<15} {'Variance':<15}")
     print("-" * 70)
     
-    for edge in sorted(posterior_means.keys()):
-        obs = edge_observations[edge]
-        mean = posterior_means[edge]
-        ci_low, ci_high = confidence_intervals[edge]
+    for edge in sorted(env.get_all_edges()):
+        obs = agent.edge_alpha[edge] + agent.edge_beta[edge] - 2
+        mean = edge_estimates[edge]
+        variance = edge_confidence[edge]
         
-        print(f"{str(edge):<15} {obs:<12} {mean:<15.3f} "
-              f"[{ci_low:.3f}, {ci_high:.3f}]")
+        print(f"{str(edge):<15} {obs:<12} {mean:<15.3f} {variance:<15.6f}")
 
 
 def main():
@@ -219,13 +229,13 @@ def main():
     
     # Run simulation
     start_time = time.time()
-    results = run_simulation(num_rounds=1000, max_paths=10, seed=42)
+    results, agent, env = run_simulation(num_rounds=1000, max_paths=10, seed=42)
     end_time = time.time()
     
     print(f"\nSimulation time: {end_time - start_time:.2f} seconds")
     
     # Analyze results
-    analyze_learned_parameters(results)
+    analyze_learned_parameters(agent, env)
     
     # Plot results (if matplotlib is available)
     try:
@@ -234,6 +244,9 @@ def main():
         print("\nMatplotlib not available, skipping plots.")
     except Exception as e:
         print(f"\nError creating plots: {e}")
+        # Print traceback for debugging
+        import traceback
+        traceback.print_exc()
     
     # Print some example paths
     print("\n" + "="*50)

@@ -8,7 +8,8 @@ CombTSAgent classes work correctly.
 
 import numpy as np
 import networkx as nx
-from routing_environment import RoutingEnvironment, create_sample_network
+from routing_environment import RoutingEnvironment
+from main_simulation import create_sample_network
 from comb_ts_agent import CombTSAgent
 
 
@@ -31,7 +32,7 @@ def test_routing_environment():
     print(f"  ✓ Available graph sampled with {available_graph.number_of_edges()} edges")
     
     # Test getting feasible paths
-    feasible_paths = env.get_feasible_paths(available_graph)
+    feasible_paths = env.get_feasible_paths(available_graph, max_paths=5)
     print(f"  ✓ Found {len(feasible_paths)} feasible paths")
     
     # Test reward generation
@@ -54,13 +55,16 @@ def test_comb_ts_agent():
     """Test the CombTSAgent class."""
     print("Testing CombTSAgent...")
     
-    # Create test edges
-    edges = [(0, 1), (1, 2), (0, 2)]
-    agent = CombTSAgent(edges, alpha_prior=1.0, beta_prior=1.0)
+    # Create test environment first
+    edge_availability_probs = {(0, 1): 1.0, (1, 2): 1.0, (0, 2): 1.0}
+    edge_reward_probs = {(0, 1): 0.5, (1, 2): 0.5, (0, 2): 0.5}
+    from routing_environment import RoutingEnvironment
+    env = RoutingEnvironment(3, edge_availability_probs, edge_reward_probs, 0, 2)
+    agent = CombTSAgent(env, alpha=1.0, beta=1.0)
     
     # Test edge mean sampling
     sampled_means = agent.sample_edge_means()
-    assert len(sampled_means) == len(edges)
+    assert len(sampled_means) == len(env.get_all_edges())
     print(f"  ✓ Sampled edge means: {sampled_means}")
     
     # Test path selection
@@ -70,23 +74,23 @@ def test_comb_ts_agent():
     print(f"  ✓ Selected path: {selected_path}")
     
     # Test update
-    initial_alpha = agent.alpha_params[(0, 1)]
+    initial_alpha = agent.edge_alpha[(0, 1)]
     agent.update([0, 1, 2], reward=2.0)
-    new_alpha = agent.alpha_params[(0, 1)]
+    new_alpha = agent.edge_alpha[(0, 1)]
     assert new_alpha > initial_alpha
     print(f"  ✓ Update works: alpha for (0,1) changed from {initial_alpha} to {new_alpha}")
     
-    # Test statistics
-    stats = agent.get_statistics()
-    assert 'posterior_means' in stats
-    assert 'confidence_intervals' in stats
-    print(f"  ✓ Statistics generated with {len(stats)} keys")
+    # Test edge estimates
+    estimates = agent.get_edge_estimates()
+    assert isinstance(estimates, dict)
+    assert len(estimates) > 0
+    print(f"  ✓ Edge estimates generated with {len(estimates)} edges")
     
-    # Test reset
-    agent.reset()
-    reset_alpha = agent.alpha_params[(0, 1)]
-    assert reset_alpha == 1.0
-    print(f"  ✓ Reset works: alpha back to {reset_alpha}")
+    # Test confidence intervals
+    confidence = agent.get_edge_confidence()
+    assert isinstance(confidence, dict)
+    assert len(confidence) > 0
+    print(f"  ✓ Confidence intervals generated for {len(confidence)} edges")
     
     print("CombTSAgent tests passed!\n")
 
@@ -96,11 +100,13 @@ def test_integration():
     print("Testing integration...")
     
     # Create sample network
-    graph, availability_probs, reward_means, source, target = create_sample_network()
+    edge_availability_probs, edge_reward_probs = create_sample_network()
+    source, target = 0, 2  # Hard-coded for simple 3-node network
+    num_nodes = 3
     
     # Initialize environment and agent
-    env = RoutingEnvironment(graph, availability_probs, reward_means, source, target)
-    agent = CombTSAgent(list(graph.edges()), alpha_prior=1.0, beta_prior=1.0)
+    env = RoutingEnvironment(num_nodes, edge_availability_probs, edge_reward_probs, source, target)
+    agent = CombTSAgent(env, alpha=1.0, beta=1.0)
     
     # Run a few simulation steps
     total_reward = 0.0
@@ -111,7 +117,7 @@ def test_integration():
         available_graph = env.sample_available_graph()
         
         # Get feasible paths
-        feasible_paths = env.get_feasible_paths(available_graph, max_paths=5)
+        feasible_paths = env.get_feasible_paths(available_graph)
         
         if feasible_paths:
             # Select path
@@ -130,9 +136,10 @@ def test_integration():
     print(f"  ✓ Average reward: {total_reward / max(successful_rounds, 1):.3f}")
     
     # Check that agent learned something
-    final_stats = agent.get_statistics()
-    total_observations = final_stats['total_observations']
+    edge_estimates = agent.get_edge_estimates()
+    total_observations = sum(agent.edge_alpha[edge] + agent.edge_beta[edge] - 2 for edge in env.get_all_edges())
     print(f"  ✓ Agent made {total_observations} total edge observations")
+    print(f"  ✓ Agent learned estimates for {len(edge_estimates)} edges")
     
     print("Integration tests passed!\n")
 

@@ -29,11 +29,30 @@ class RoutingEnvironment:
             source: Source node for routing
             target: Target node for routing (defaults to num_nodes - 1)
         """
+        if num_nodes <= 0:
+            raise ValueError("num_nodes must be positive")
+        if not isinstance(edge_availability_probs, dict) or not isinstance(edge_reward_probs, dict):
+            raise TypeError("edge probabilities must be dictionaries")
+        if source < 0 or source >= num_nodes:
+            raise ValueError(f"source node {source} out of range [0, {num_nodes-1}]")
+        
+        target = target if target is not None else num_nodes - 1
+        if target < 0 or target >= num_nodes:
+            raise ValueError(f"target node {target} out of range [0, {num_nodes-1}]")
+        
+        # Validate probability values
+        for edge, prob in edge_availability_probs.items():
+            if not (0 <= prob <= 1):
+                raise ValueError(f"Availability probability for edge {edge} must be in [0,1], got {prob}")
+        for edge, prob in edge_reward_probs.items():
+            if not (0 <= prob <= 1):
+                raise ValueError(f"Reward probability for edge {edge} must be in [0,1], got {prob}")
+        
         self.num_nodes = num_nodes
         self.edge_availability_probs = edge_availability_probs
         self.edge_reward_probs = edge_reward_probs
         self.source = source
-        self.target = target if target is not None else num_nodes - 1
+        self.target = target
         
         # Create the full network graph
         self.full_graph = nx.DiGraph()
@@ -55,13 +74,15 @@ class RoutingEnvironment:
         
         return available_graph
     
-    def get_feasible_paths(self, available_graph: nx.DiGraph = None) -> List[List[int]]:
+    def get_feasible_paths(self, available_graph: nx.DiGraph = None, max_paths: int = 10) -> List[List[int]]:
 
         """
-        Find all feasible paths from source to target in the available graph.
+        Find feasible paths from source to target in the available graph.
+        For performance, limits the number of paths returned.
         
         Args:
             available_graph: Available subgraph (if None, samples a new one)
+            max_paths: Maximum number of paths to return (default: 10)
             
         Returns:
             List of feasible paths as lists of nodes
@@ -70,9 +91,30 @@ class RoutingEnvironment:
             available_graph = self.sample_available_graph()
         
         try:
-            # Find all simple paths from source to target
-            all_paths = list(nx.all_simple_paths(available_graph, self.source, self.target))
-            return all_paths
+            # For better performance, limit the number of paths
+            # First try to find shortest paths, then explore others
+            if nx.has_path(available_graph, self.source, self.target):
+                # Get shortest path first
+                shortest_path = nx.shortest_path(available_graph, self.source, self.target)
+                paths = [shortest_path]
+                
+                # If we need more paths and the graph is small enough, get more
+                if max_paths > 1:
+                    try:
+                        # Use a generator to avoid computing all paths at once
+                        all_paths_gen = nx.all_simple_paths(available_graph, self.source, self.target)
+                        for path in all_paths_gen:
+                            if path not in paths:
+                                paths.append(path)
+                            if len(paths) >= max_paths:
+                                break
+                    except:
+                        # If all_simple_paths fails or takes too long, just return shortest
+                        pass
+                
+                return paths
+            else:
+                return []
         except nx.NetworkXNoPath:
             return []
     
