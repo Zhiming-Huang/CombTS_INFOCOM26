@@ -33,6 +33,7 @@ CombTS_INFOCOM26/
 ## Key Features
 
 ### CombTS Algorithm
+- **Environment-Based Design**: Takes an environment instance that provides available arms and feasible combinations
 - **Posterior Sampling**: Draws samples from Beta posterior distributions for each arm
 - **Combinatorial Selection**: Selects feasible combinations with highest sum of posterior samples
 - **Sleeping Arms Support**: Handles arms that may not be available at every round
@@ -44,13 +45,21 @@ CombTS_INFOCOM26/
 - **Path Finding**: Finds all feasible paths between source and destination
 - **Reward Generation**: Generates Bernoulli rewards based on link-specific means
 
+### Simple Environment
+- **Test Environment**: Simple environment for testing CombTS algorithm
+- **Configurable Arms**: 10 arms with 3 optimal (Bernoulli(0.9)) and 7 suboptimal (Bernoulli(0.1))
+- **Sleeping Arms**: Each arm has 0.5 availability rate
+- **Combinatorial Constraints**: Maximum combination size of 3 arms
+
 ### Simulation System
 - **Modular Design**: CombTS and environment are completely separate
 - **Comprehensive Tracking**: Records all simulation data for analysis
 - **Visualization**: Built-in plotting and network visualization
 - **Results Export**: Saves results as JSON and plots as PNG
 
-## Test Case: 3x3 Mesh Network
+## Test Cases
+
+### 1. 3x3 Mesh Network
 
 The system includes a test case with a 3x3 mesh network:
 
@@ -62,10 +71,21 @@ The system includes a test case with a 3x3 mesh network:
 6 -- 7 -- 8
 ```
 
-**Optimal Path**: 0 → 1 → 2 → 5 → 8 (links 0, 1, 4, 9)
+**Optimal Path**: 0 → 1 → 2 → 5 → 8 (links 0, 2, 4, 9)
 - Links in optimal path: Bernoulli(0.9)
 - Other links: Bernoulli(0.8)
 - Expected optimal reward: 3.6
+
+### 2. Simple Environment
+
+A simple test environment for verifying CombTS algorithm performance:
+
+- **10 arms**: 3 optimal arms with Bernoulli(0.9), 7 suboptimal arms with Bernoulli(0.1)
+- **Sleeping arms**: Each arm has 0.5 availability rate
+- **Combinatorial constraints**: Maximum combination size of 3
+- **Expected optimal reward**: 2.7 (when all 3 optimal arms are available)
+
+**Regret Analysis**: The algorithm demonstrates sublinear regret growth, confirming theoretical guarantees.
 
 ## Installation
 
@@ -134,7 +154,15 @@ sim.save_results(results)
 ### Running Tests
 
 ```bash
+# Test routing simulation
 python test/test_simulation.py
+
+# Test simple environment and regret analysis
+python test/test_simple_environment.py
+python test/test_regret_analysis.py
+
+# Debug simple environment
+python test/test_simple_debug.py
 ```
 
 ## API Reference
@@ -143,9 +171,8 @@ python test/test_simulation.py
 
 ```python
 class CombTS:
-    def __init__(self, num_arms: int, alpha: float = 1.0, beta: float = 1.0)
-    def select_combination(self, available_arms: Set[int], 
-                          feasible_combinations: List[Set[int]]) -> Set[int]
+    def __init__(self, environment, alpha: float = 1.0, beta: float = 1.0)
+    def select_combination(self) -> Set[int]
     def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float])
     def get_arm_statistics(self) -> Dict[str, Any]
 ```
@@ -161,6 +188,20 @@ class RoutingEnvironment:
                           available_links: Set[int]) -> List[Set[int]]
     def generate_reward(self, link_id: int) -> float
     def generate_path_reward(self, path: Set[int]) -> Dict[int, float]
+```
+
+### SimpleEnvironment Class
+
+```python
+class SimpleEnvironment:
+    def __init__(self, num_arms: int = 10, num_optimal: int = 3, 
+                 optimal_mean: float = 0.9, suboptimal_mean: float = 0.1,
+                 availability_rate: float = 0.5, max_combination_size: int = 3)
+    def get_available_arms(self) -> Set[int]
+    def get_feasible_combinations(self, available_arms: Set[int]) -> List[Set[int]]
+    def generate_reward(self, arm: int) -> float
+    def generate_combination_reward(self, combination: Set[int]) -> Dict[int, float]
+    def get_optimal_combination(self, available_arms: Set[int]) -> Set[int]
 ```
 
 ### RoutingSimulation Class

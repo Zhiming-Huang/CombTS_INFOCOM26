@@ -11,40 +11,41 @@ class CombTS:
     sleeping arms (arms that may not be available at every round).
     """
     
-    def __init__(self, num_arms: int, alpha: float = 1.0, beta: float = 1.0):
+    def __init__(self, environment, alpha: float = 1.0, beta: float = 1.0):
         """
         Initialize the CombTS algorithm.
         
         Args:
-            num_arms: Total number of arms in the system
+            environment: Environment instance that provides available arms and feasible combinations
             alpha: Prior parameter for Beta distribution (default: 1.0)
             beta: Prior parameter for Beta distribution (default: 1.0)
         """
-        self.num_arms = num_arms
+        self.environment = environment
+        self.num_arms = environment.num_arms
         self.alpha = alpha
         self.beta = beta
         
         # Initialize posterior parameters for each arm
         # alpha_posterior[i] = alpha + number of successes for arm i
         # beta_posterior[i] = beta + number of failures for arm i
-        self.alpha_posterior = np.ones(num_arms) * alpha
-        self.beta_posterior = np.ones(num_arms) * beta
+        self.alpha_posterior = np.ones(self.num_arms) * alpha
+        self.beta_posterior = np.ones(self.num_arms) * beta
         
         # Track which arms have been played at least once
         self.played_arms = set()
     
-    def select_combination(self, available_arms: Set[int], 
-                          feasible_combinations: List[Set[int]]) -> Set[int]:
+    def select_combination(self) -> Set[int]:
         """
         Select a feasible combination based on Thompson Sampling.
         
-        Args:
-            available_arms: Set of arms that are currently available
-            feasible_combinations: List of feasible combinations (each is a set of arms)
-            
         Returns:
             Selected feasible combination (set of arms)
         """
+        # Get available arms and feasible combinations from environment
+        # Use the consistent method to ensure same arms for algorithm and benchmark
+        available_arms = self.environment.sample_available_arms_once()
+        feasible_combinations = self.environment.get_feasible_combinations(available_arms)
+        
         if not feasible_combinations:
             return set()
         
