@@ -1,154 +1,206 @@
-# CTS-B Examples
+# Examples
 
-This directory contains various examples demonstrating different features and optimizations of the CTS-B algorithm.
+This directory contains example scripts demonstrating how to use the combinatorial bandit algorithms.
 
-## 📁 Example Files
+## Available Examples
 
-### 🚀 **Basic Examples**
+### Algorithm Comparison Example
 
-#### `example.py`
-- **Purpose**: Basic demonstration of CTS-B algorithm
-- **Features**: Simple environment setup and algorithm execution
-- **Use case**: Getting started with CTS-B
+**File:** `example_algorithm_comparison.py`
 
-#### `example_simple.py`
-- **Purpose**: Simple environment test with CTS-B
-- **Features**: 10 arms (3 optimal, 7 suboptimal), regret analysis
-- **Use case**: Basic algorithm validation
+This example demonstrates how to compare multiple combinatorial bandit algorithms using memory-mapped arrays for efficient large-scale simulations.
 
-### ⚡ **Performance Optimization Examples**
+**Features:**
+- Memory-efficient simulation using `numpy.memmap`
+- Support for multiple algorithms: CTS-B, CombUCB, CTS-G, CL-SG, BG-CTS
+- Confidence interval analysis
+- Regret growth analysis
+- PDF vector graphics output
+- Progress tracking with different levels
 
-#### `example_matrix_optimization.py`
-- **Purpose**: Demonstrate matrix-based optimization
-- **Features**: Pre-generated availability matrix, performance comparison
-- **Use case**: Understanding matrix optimization benefits
-
-#### `example_rewards_optimization.py`
-- **Purpose**: Show pre-generated rewards optimization
-- **Features**: 2-4x performance improvement, memory mapping
-- **Use case**: Large-scale simulation optimization
-
-#### `example_memmap_optimization.py`
-- **Purpose**: Memory-mapped environment for ultra-large matrices
-- **Features**: 7.89x memory efficiency, chunked generation
-- **Use case**: Handling massive datasets (500 arms × 50K rounds)
-
-### 📊 **Progress Tracking Examples**
-
-#### `example_progress_tracking.py`
-- **Purpose**: Demonstrate different progress tracking levels
-- **Features**: Minimal, normal, detailed progress with performance comparison
-- **Use case**: Choosing appropriate progress level for your use case
-
-## 🎯 **Usage Guide**
-
-### Quick Start
+**Usage:**
 ```bash
-# Basic example
-python example/example.py
+# Run with default settings
+python example_algorithm_comparison.py
 
-# Simple environment test
-python example/example_simple.py
-
-# Performance optimization
-python example/example_rewards_optimization.py
-
-# Progress tracking
-python example/example_progress_tracking.py
+# Run with custom random seed
+python example_algorithm_comparison.py --main_seed 42
 ```
 
-### Performance Comparison
+**Configuration:**
+- Rounds: 10,000 (configurable)
+- Runs: 5 (configurable)
+- Progress level: "normal" (options: "minimal", "normal", "detailed")
+- Algorithms: CTS-B, CombUCB, CTS-G, CL-SG, BG-CTS
+
+**Output:**
+- Console output with regret analysis and algorithm comparison
+- PDF plot saved to `output/images/algorithm_comparison.pdf`
+- Memory-mapped data files (automatically cleaned up)
+
+**Key Features:**
+1. **Memory Efficiency**: Uses memory-mapped arrays to handle large simulations without loading everything into RAM
+2. **Fair Comparison**: All algorithms use the same environment and random seeds for fair comparison
+3. **Statistical Analysis**: Provides confidence intervals and regret growth analysis
+4. **Professional Plotting**: Generates publication-quality PDF plots with proper formatting
+5. **Progress Tracking**: Multiple levels of progress tracking for different use cases
+
+### Routing Environment Example
+
+**File:** `example_routing_environment.py`
+
+This example demonstrates how to use the RoutingEnvironment for network routing problems. It creates a 3x3 mesh network where each link is modeled as an arm, and the goal is to find the optimal path from source to destination.
+
+**Features:**
+- Network topology modeling using NetworkX
+- Link availability and reward modeling
+- Path finding and optimization
+- Multiple algorithm comparison
+- Network visualization
+
+**Usage:**
 ```bash
-# Compare different optimization approaches
-python example/example_matrix_optimization.py
-python example/example_rewards_optimization.py
-python example/example_memmap_optimization.py
+# Run the routing example
+python example_routing_environment.py
 ```
 
-## 📈 **Performance Characteristics**
+**Configuration:**
+- Network: 3x3 mesh topology
+- Source: Node 0 (top-left corner)
+- Destination: Node 8 (bottom-right corner)
+- Link availability: 0.8 for all links
+- Optimal path reward: 0.9 (path: 0→1→2→5→8)
+- Suboptimal path reward: 0.8
+- Rounds: 10,000, Runs: 5
 
-| Example | Optimization | Speedup | Memory Efficiency | Use Case |
-|---------|-------------|---------|-------------------|----------|
-| `example.py` | None | 1x | Standard | Basic demo |
-| `example_simple.py` | None | 1x | Standard | Algorithm validation |
-| `example_matrix_optimization.py` | Matrix pre-generation | 1.23x | Standard | Medium-scale |
-| `example_rewards_optimization.py` | Pre-generated rewards | 2-4x | Standard | Large-scale |
-| `example_memmap_optimization.py` | Memory mapping | 1.23x | 7.89x | Ultra-large scale |
-| `example_progress_tracking.py` | Progress levels | Configurable | Standard | All scales |
+**Output:**
+- Network topology visualization
+- Console output with routing analysis
+- PDF plot saved to `output/images/routing_environment_example.pdf`
 
-## 🔧 **Configuration Options**
+**Key Features:**
+1. **Network Modeling**: Uses NetworkX for realistic network topology modeling
+2. **Path Optimization**: Automatically finds optimal paths from source to destination
+3. **Link Modeling**: Each network link is modeled as an arm with availability and reward
+4. **Visualization**: Interactive network visualization with optimal path highlighting
+5. **Algorithm Comparison**: Compares multiple algorithms on the routing problem
 
-### Environment Parameters
-```python
-# Basic environment
-env = SimpleEnvironment(
-    num_arms=10,
-    num_optimal=3,
-    optimal_mean=0.9,
-    suboptimal_mean=0.1,
-    availability_rate=0.5,
-    max_combination_size=3
-)
+### 4x4 Mesh Network Example (High Availability)
 
-# Optimized environment
-env = SimpleEnvironment(
-    num_arms=10,
-    num_rounds=10000,  # Pre-generate matrices
-    pre_generate_rewards=True,  # Pre-generate rewards
-    seed=42  # Reproducible results
-)
+**File:** `example_routing_environment_4x4.py`
+
+This example demonstrates routing with a 4x4 mesh network topology using high link availability (0.9) representing good wireless network conditions.
+
+**Features:**
+- 4x4 mesh network topology (16 nodes, 24 links)
+- High link availability (0.9) for good network conditions
+- Link availability and reward modeling
+- Path finding and optimization
+- Multiple algorithm comparison
+- Network visualization
+
+**Usage:**
+```bash
+# Run with default high availability (0.9)
+python example_routing_environment_4x4.py
+
+# Run with custom availability rate
+python example_routing_environment_4x4.py --availability 0.8
+python example_routing_environment_4x4.py --availability 0.6
+
+# Run with custom parameters
+python example_routing_environment_4x4.py --availability 0.7 --rounds 5000 --runs 3
 ```
 
-### Progress Tracking
-```python
-# Different progress levels
-results = run_simple_simulation(
-    num_rounds=10000,
-    num_runs=5,
-    progress_level="minimal"    # Production
-    progress_level="normal"     # Development
-    progress_level="detailed"   # Debugging
-)
+**Configuration:**
+- Network: 4x4 mesh topology
+- Source: Node 0 (top-left corner)
+- Destination: Node 15 (bottom-right corner)
+- Link availability: 0.9 for all links (high availability)
+- Optimal path reward: 0.9 (path: 0→1→2→3→7→11→15)
+- Suboptimal path reward: 0.8
+- Rounds: 10,000, Runs: 5
+
+**Output:**
+- Network topology visualization
+- Console output with routing analysis
+- PDF plot saved to `output/images/routing_environment_4x4_availability_{rate}.pdf`
+- Dynamic filename based on availability rate (e.g., `availability_0_8.pdf` for 0.8 rate)
+
+**Key Features:**
+1. **Larger Network**: 4x4 mesh provides more complex routing scenarios
+2. **Configurable Availability**: Easy to test different network conditions (0.0-1.0)
+3. **Longer Paths**: Optimal path has 6 hops, testing algorithm scalability
+4. **Dynamic Analysis**: Compare algorithm performance across different availability rates
+5. **Performance Comparison**: Shows how algorithms scale with network size and conditions
+6. **Command Line Interface**: Easy parameter configuration via command line arguments
+
+**Example Output:**
+```
+Algorithm Comparison Example with Memory-Mapped Simulation
+======================================================================
+Configuration:
+  Rounds: 10000
+  Runs: 5
+  Progress level: normal
+  Algorithms: CTSB, CombUCB, CTS-G, CL-SG, BG-CTS
+  Main seed: 15
+
+Running 5 simulations with 10000 rounds each...
+Algorithms: CTSB, CombUCB, CTS-G, CL-SG, BG-CTS
+Progress level: normal
+Created memory-mapped arrays: 5 runs × 10000 rounds × 5 algorithms
+Storage location: /path/to/output/data
+Memory usage: 0.38 MB per array
+
+Regret Growth Analysis (with 95% confidence intervals):
+======================================================================
+Round   100: CTSB:    45.23 ±   2.15 (rate: 4.5230) CombUCB:    52.18 ±   3.21 (rate: 5.2180) ...
+Round  1000: CTSB:   142.67 ±   8.45 (rate: 4.5110) CombUCB:   165.23 ±  12.34 (rate: 5.2250) ...
+
+Algorithm Comparison Results:
+==================================================
+CTSB final regret: 142.67 ± 8.45
+CombUCB final regret: 165.23 ± 12.34
+Winner: CTSB (improvement: 13.7%)
+
+Algorithm comparison plot saved to: /path/to/output/images/algorithm_comparison.pdf
+Example completed successfully!
 ```
 
-## 📊 **Expected Results**
+## Environment Setup
 
-### Regret Analysis
-- **Sublinear regret**: Linear growth rate < 0.15
-- **O(√T) performance**: Regret/√T growth rate bounded
-- **Consistent evaluation**: Algorithm and benchmark use same arm sets
+Make sure you have all required dependencies installed:
 
-### Performance Metrics
-- **Matrix optimization**: 1.23x speedup
-- **Rewards optimization**: 2-4x speedup
-- **Memory mapping**: 7.89x memory efficiency
-- **Progress tracking**: < 5% overhead
+```bash
+pip install -r ../requirements.txt
+```
 
-## 🛠️ **Dependencies**
+## Running Examples
 
-All examples require:
-- `numpy` - Numerical computations
-- `matplotlib` - Plotting (for visualization examples)
-- `tqdm` - Progress bars (for progress tracking examples)
-- `seaborn` - Enhanced plotting (for some examples)
+All examples can be run from the project root directory:
 
-## 📝 **Notes**
+```bash
+# From project root
+python example/example_algorithm_comparison.py
 
-1. **Reproducibility**: All examples use fixed seeds for reproducible results
-2. **Scalability**: Examples demonstrate different optimization levels
-3. **Memory**: Memory-mapped examples handle ultra-large datasets
-4. **Progress**: Configurable progress tracking for different use cases
+# Or from example directory
+cd example
+python example_algorithm_comparison.py
+```
 
-## 🔗 **Related Documentation**
+## Customization
 
-- `docs/rewards_optimization_guide.md` - Rewards optimization details
-- `docs/new_rng_guide.md` - Random number generation guide
-- `docs/synchronization_fix_guide.md` - Synchronization fixes
-- `docs/progress_tracking_guide.md` - Progress tracking guide
+You can modify the example scripts to:
+- Change the number of rounds and runs
+- Add or remove algorithms
+- Adjust environment parameters
+- Modify plotting styles
+- Add new analysis functions
 
-## 🚀 **Next Steps**
+## Troubleshooting
 
-1. Start with `example.py` for basic understanding
-2. Try `example_simple.py` for algorithm validation
-3. Explore optimization examples for performance improvements
-4. Use progress tracking examples for large-scale simulations 
+1. **Import Errors**: Make sure you're running from the project root or that the Python path is set correctly
+2. **Memory Issues**: Reduce the number of rounds or runs for memory-constrained systems
+3. **LaTeX Errors**: The plotting will automatically fall back to non-LaTeX rendering if LaTeX is not available
+4. **File Permission Errors**: Ensure the output directories have write permissions 

@@ -1,8 +1,21 @@
-# %%
 #!/usr/bin/env python3
 """
-Memory-mapped test script for simple environment with cumulative regret only.
-Supports both CTS-B and CombUCB algorithms.
+Example: Algorithm Comparison with Memory-Mapped Simulation
+==========================================================
+
+This example demonstrates how to compare multiple combinatorial bandit algorithms
+using memory-mapped arrays for efficient large-scale simulations.
+
+Features:
+- Memory-efficient simulation using numpy.memmap
+- Support for multiple algorithms: CTS-B, CombUCB, CTS-G, CL-SG, BG-CTS
+- Confidence interval analysis
+- Regret growth analysis
+- PDF vector graphics output
+- Progress tracking with different levels
+
+Usage:
+    python example_algorithm_comparison.py --main_seed 15
 """
 
 import sys
@@ -10,11 +23,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 from tqdm import tqdm
-import tempfile
 from scipy import stats
-import inspect
 
 # Add project root to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -27,27 +38,6 @@ from src.bandits.cts_g import CTSG
 from src.bandits.cl_sg import CLSG
 from src.bandits.bg_cts import BGCTS
 from src.environments.simple_environment import SimpleEnvironment
-
-
-def setup_test_environment():
-    """Setup the test environment and return project root."""
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    sys.path.insert(0, project_root)
-    return project_root
-
-
-def check_imports():
-    """Check if all required imports work."""
-    try:
-        from src.bandits.cts_b import CTSB
-        from src.bandits.comb_ucb import CombUCB
-        from src.bandits.cts_g import CTSG
-        from src.environments.simple_environment import SimpleEnvironment
-        return True
-    except ImportError as e:
-        print(f"Import error: {e}")
-        return False
 
 
 def get_output_path(filename):
@@ -75,7 +65,7 @@ def run_memory_mapped_simulation(num_rounds: int = 10000, num_runs: int = 5,
         num_rounds: Number of rounds per simulation
         num_runs: Number of independent runs
         progress_level: Progress tracking level ("minimal", "normal", "detailed")
-        algorithms: List of algorithms to test ("CTSB", "CombUCB")
+        algorithms: List of algorithms to test
         main_seed: Seed for the main random number generator
         
     Returns:
@@ -91,7 +81,6 @@ def run_memory_mapped_simulation(num_rounds: int = 10000, num_runs: int = 5,
     os.makedirs(output_data_dir, exist_ok=True)
     
     # Create memory-mapped files for each algorithm
-    algorithm_files = {}
     algorithm_mmaps = {}
     
     for alg in algorithms:
@@ -103,7 +92,6 @@ def run_memory_mapped_simulation(num_rounds: int = 10000, num_runs: int = 5,
         rewards_mmap = np.memmap(rewards_file, dtype=np.float64, mode='w+', 
                                  shape=(num_runs, num_rounds))
         
-        algorithm_files[alg] = (regrets_file, rewards_file)
         algorithm_mmaps[alg] = (regrets_mmap, rewards_mmap)
     
     print(f"Created memory-mapped arrays: {num_runs} runs × {num_rounds} rounds × {len(algorithms)} algorithms")
@@ -122,11 +110,13 @@ def run_memory_mapped_simulation(num_rounds: int = 10000, num_runs: int = 5,
     else:
         run_pbar = range(num_runs)
     
-    # Setup a main random generator for fairness (only once, outside run loop)
+    # Setup a main random generator for fairness
     main_rng = np.random.default_rng(main_seed)
     child_rngs = main_rng.spawn(1 + len(algorithms))
     env_rng = child_rngs[0]
     rng_dict = {alg: child_rngs[i+1] for i, alg in enumerate(algorithms)}
+    
+    # Create shared environment
     shared_env = SimpleEnvironment(
         num_arms=10,
         num_optimal=3,
@@ -138,59 +128,65 @@ def run_memory_mapped_simulation(num_rounds: int = 10000, num_runs: int = 5,
         pre_generate_rewards=True,
         rng=env_rng
     )
+    
     for run in run_pbar:
         if show_run_progress:
             run_pbar.set_postfix({"Run": f"{run + 1}/{num_runs}"})
-        # Use the same environment for all runs
-        temp_env = shared_env
+        
+        # Create algorithm instances for this run
         algorithm_instances = {}
         if "CTSB" in algorithms:
-            algorithm_instances["CTSB"] = CTSB(environment=temp_env, rng=rng_dict["CTSB"])
+            algorithm_instances["CTSB"] = CTSB(environment=shared_env, rng=rng_dict["CTSB"])
         if "CombUCB" in algorithms:
-            algorithm_instances["CombUCB"] = CombUCB(environment=temp_env, rng=rng_dict["CombUCB"])
+            algorithm_instances["CombUCB"] = CombUCB(environment=shared_env, rng=rng_dict["CombUCB"])
         if "CTS-G" in algorithms:
-            algorithm_instances["CTS-G"] = CTSG(environment=temp_env, rng=rng_dict["CTS-G"], gamma=0.1)
+            algorithm_instances["CTS-G"] = CTSG(environment=shared_env, rng=rng_dict["CTS-G"], gamma=0.1)
         if "CL-SG" in algorithms:
-            algorithm_instances["CL-SG"] = CLSG(environment=temp_env, rng=rng_dict["CL-SG"], gamma=0.1)
+            algorithm_instances["CL-SG"] = CLSG(environment=shared_env, rng=rng_dict["CL-SG"], gamma=0.1)
         if "BG-CTS" in algorithms:
-            algorithm_instances["BG-CTS"] = BGCTS(environment=temp_env, rnd_generator=rng_dict["BG-CTS"])
+            algorithm_instances["BG-CTS"] = BGCTS(environment=shared_env, rnd_generator=rng_dict["BG-CTS"])
         
         # Run simulation for each algorithm
         for alg_name in algorithms:
             algorithm = algorithm_instances[alg_name]
             regrets_mmap, rewards_mmap = algorithm_mmaps[alg_name]
-            # Remove per-algorithm env creation and assignment
-            # env = SimpleEnvironment(...)
-            # algorithm.environment = env
-            # Use temp_env (shared_env) for all algorithms
-            # Run simulation
+            
             total_reward = 0
             total_regret = 0
+            
             # Create progress bar for rounds
             if show_round_progress:
                 round_pbar = tqdm(range(num_rounds), desc=f"Run {run + 1} {alg_name} rounds", 
                                  unit="round", leave=False)
             else:
                 round_pbar = range(num_rounds)
+                
             for round_num in round_pbar:
                 selected_combination = algorithm.select_combination(round_num)
                 rewards = {}
                 total_round_reward = 0
+                
                 if selected_combination:
                     for arm in selected_combination:
-                        rewards[arm] = temp_env.get_reward_for_round(arm, round_num)
+                        rewards[arm] = shared_env.get_reward_for_round(arm, round_num)
                     total_round_reward = sum(rewards.values())
+                
                 # Update algorithm
                 algorithm.update_posterior(selected_combination, rewards, round_num)
-                available_arms = temp_env.get_available_arms_for_round(round_num)
-                optimal_combination = temp_env.get_optimal_combination(available_arms)
-                optimal_expected_reward = sum(temp_env.arm_means[arm] for arm in optimal_combination) if optimal_combination else 0
-                selected_expected_reward = sum(temp_env.arm_means[arm] for arm in selected_combination) if selected_combination else 0
+                
+                # Calculate regret
+                available_arms = shared_env.get_available_arms_for_round(round_num)
+                optimal_combination = shared_env.get_optimal_combination(available_arms)
+                optimal_expected_reward = sum(shared_env.arm_means[arm] for arm in optimal_combination) if optimal_combination else 0
+                selected_expected_reward = sum(shared_env.arm_means[arm] for arm in selected_combination) if selected_combination else 0
                 regret = optimal_expected_reward - selected_expected_reward
+                
                 total_reward += total_round_reward
                 total_regret += regret
+                
                 regrets_mmap[run, round_num] = total_regret
                 rewards_mmap[run, round_num] = total_reward
+            
             regrets_mmap.flush()
             rewards_mmap.flush()
     
@@ -330,14 +326,20 @@ def plot_cumulative_regret_only(results: Dict[str, Any]):
     Args:
         results: Results from run_memory_mapped_simulation
     """
-    # Set seaborn style similar to provided code
+    # Set seaborn style
     sns.set_theme()
     sns.set_style("whitegrid")
     
     # Set figure size and parameters
     plt.figure(figsize=(4, 3))
-    plt.rcParams['text.usetex'] = True
-    plt.rcParams['font.size'] = 20
+    
+    # Try to use LaTeX rendering, fallback if not available
+    try:
+        plt.rcParams['text.usetex'] = True
+        plt.rcParams['font.size'] = 20
+    except:
+        plt.rcParams['text.usetex'] = False
+        plt.rcParams['font.size'] = 12
     
     num_rounds = results['num_rounds']
     rounds = np.arange(1, num_rounds + 1)
@@ -348,7 +350,7 @@ def plot_cumulative_regret_only(results: Dict[str, Any]):
     display_names = {'CTSB': 'CTS-B', 'CombUCB': 'CombUCB', 'CTS-G': 'CTS-G', 'CL-SG': 'CL-SG', 'BG-CTS': 'BG-CTS'}
     
     # Plot cumulative regret for each algorithm
-    markevery = int(num_rounds / 10)  # Mark every T/10 points
+    markevery = max(1, int(num_rounds / 10))  # Mark every T/10 points
     
     for alg in algorithms:
         alg_data = results[alg.lower()]
@@ -380,25 +382,32 @@ def plot_cumulative_regret_only(results: Dict[str, Any]):
     plt.ylabel('Regret', fontsize=10)
     
     # Save as PDF vector graphics
-    output_path = get_output_path('simple_environment_cumulative_regret_only.pdf')
+    output_path = get_output_path('algorithm_comparison.pdf')
     plt.savefig(output_path, bbox_inches='tight', format='pdf', dpi=300)
     plt.show()
     
-    print(f"Cumulative regret plot saved to: {output_path}")
+    print(f"Algorithm comparison plot saved to: {output_path}")
 
 
 def main(main_seed=15):
-    print("Memory-Mapped Simple Environment Algorithm Test (Cumulative Regret Only)")
+    """
+    Main function to run the algorithm comparison example.
+    
+    Args:
+        main_seed: Random seed for reproducibility
+    """
+    print("Algorithm Comparison Example with Memory-Mapped Simulation")
     print("=" * 70)
-    # Setup environment
-    project_root = setup_test_environment()
-    if not check_imports():
-        print("Warning: Some imports failed. Check the Python path setup.")
+    
+    # Ensure output directory exists
     ensure_output_directory()
-    num_rounds = 100000
-    num_runs = 10
+    
+    # Configuration
+    num_rounds = 10000  # Reduced for faster demonstration
+    num_runs = 5        # Reduced for faster demonstration
     progress_level = "normal"
     algorithms = ["CTSB", "CombUCB", "CTS-G", "CL-SG", "BG-CTS"]
+    
     print("Configuration:")
     print(f"  Rounds: {num_rounds}")
     print(f"  Runs: {num_runs}")
@@ -406,6 +415,8 @@ def main(main_seed=15):
     print(f"  Algorithms: {', '.join(algorithms)}")
     print(f"  Main seed: {main_seed}")
     print()
+    
+    # Run simulation
     results = run_memory_mapped_simulation(
         num_rounds=num_rounds,
         num_runs=num_runs,
@@ -413,15 +424,24 @@ def main(main_seed=15):
         algorithms=algorithms,
         main_seed=main_seed
     )
+    
+    # Analyze results
     analyze_regret_growth_with_confidence(results)
     if len(algorithms) > 1:
         analyze_algorithm_comparison(results)
+    
+    # Plot results
     plot_cumulative_regret_only(results)
+    
+    # Cleanup
     cleanup_temp_files(results)
+    
+    print("\nExample completed successfully!")
+
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Run memory-mapped combinatorial bandit simulation.")
+    parser = argparse.ArgumentParser(description="Run algorithm comparison example.")
     parser.add_argument('--main_seed', type=int, default=15, help='Main random seed (default: 15)')
     args, unknown = parser.parse_known_args()
     main(main_seed=args.main_seed) 
