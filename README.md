@@ -15,19 +15,38 @@ CombTS_INFOCOM26/
 │   │   └── comb_ts.py              # Combinatorial Thompson Sampling algorithm
 │   ├── environments/
 │   │   ├── __init__.py
-│   │   └── routing_environment.py  # Network routing environment
+│   │   ├── routing_environment.py  # Network routing environment
+│   │   ├── simple_environment.py   # Simple test environment
+│   │   └── simple_environment_memmap.py  # Memory-mapped environment
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   └── network_utils.py        # Network creation utilities
 │   ├── __init__.py
 │   └── simulation.py               # Main simulation orchestrator
-├── test/
-│   └── test_simulation.py          # Test script
-├── notebooks/
-│   └── simulation_demo.ipynb       # Jupyter notebook demo
+├── example/                        # Example scripts and demonstrations
+│   ├── README.md                   # Examples documentation
+│   ├── example.py                  # Basic demonstration
+│   ├── example_simple.py           # Simple environment test
+│   ├── example_matrix_optimization.py  # Matrix optimization
+│   ├── example_rewards_optimization.py # Rewards optimization
+│   ├── example_memmap_optimization.py  # Memory-mapped optimization
+│   └── example_progress_tracking.py    # Progress tracking demo
+├── test/                           # Test scripts
+│   ├── test_simulation.py          # Main simulation tests
+│   ├── test_simple_environment.py  # Simple environment tests
+│   ├── test_progress_tracking.py   # Progress tracking tests
+│   └── test_progress_performance.py # Performance tests
+├── docs/                           # Documentation
+│   ├── rewards_optimization_guide.md
+│   ├── new_rng_guide.md
+│   ├── synchronization_fix_guide.md
+│   └── progress_tracking_guide.md
+├── notebooks/                      # Jupyter notebooks
+│   └── simulation_demo.ipynb       # Interactive demo
 ├── output/                         # Simulation results and plots
 ├── requirements.txt                # Python dependencies
-└── README.md                       # This file
+├── CHANGELOG.md                   # Version history
+└── README.md                      # This file
 ```
 
 ## Key Features
@@ -151,6 +170,22 @@ sim.plot_results(results)
 sim.save_results(results)
 ```
 
+### Running Examples
+
+```bash
+# Basic examples
+python example/example.py
+python example/example_simple.py
+
+# Performance optimization examples
+python example/example_matrix_optimization.py
+python example/example_rewards_optimization.py
+python example/example_memmap_optimization.py
+
+# Progress tracking example
+python example/example_progress_tracking.py
+```
+
 ### Running Tests
 
 ```bash
@@ -159,10 +194,10 @@ python test/test_simulation.py
 
 # Test simple environment and regret analysis
 python test/test_simple_environment.py
-python test/test_regret_analysis.py
 
-# Debug simple environment
-python test/test_simple_debug.py
+# Test progress tracking
+python test/test_progress_tracking.py
+python test/test_progress_performance.py
 ```
 
 ## API Reference

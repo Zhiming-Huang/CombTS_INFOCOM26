@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import time
 import tempfile
+from tqdm import tqdm
 
 
 def test_memmap_generation():

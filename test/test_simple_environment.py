@@ -11,38 +11,57 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from typing import List, Dict, Any
+from tqdm import tqdm
 
 from src.bandits.comb_ts import CombTS
 from src.environments.simple_environment import SimpleEnvironment
 
 
-def run_simple_simulation(num_rounds: int = 10000, num_runs: int = 5) -> Dict[str, Any]:
+def run_simple_simulation(num_rounds: int = 10000, num_runs: int = 5, 
+                         progress_level: str = "normal") -> Dict[str, Any]:
     """
     Run multiple simulations to verify sublinear regret.
     
     Args:
         num_rounds: Number of rounds per simulation
         num_runs: Number of independent runs
+        progress_level: Progress tracking level ("minimal", "normal", "detailed")
         
     Returns:
         Dictionary containing aggregated results
     """
     print(f"Running {num_runs} simulations with {num_rounds} rounds each...")
+    print(f"Progress level: {progress_level}")
     
     all_cumulative_regrets = []
     all_cumulative_rewards = []
     
-    for run in range(num_runs):
-        print(f"Run {run + 1}/{num_runs}")
+    # Configure progress bars based on level
+    show_run_progress = progress_level in ["normal", "detailed"]
+    show_round_progress = progress_level == "detailed"
+    show_regret_updates = progress_level == "detailed"
+    
+    # Create progress bar for runs
+    if show_run_progress:
+        run_pbar = tqdm(range(num_runs), desc="Simulation runs", unit="run")
+    else:
+        run_pbar = range(num_runs)
+    
+    for run in run_pbar:
+        if show_run_progress:
+            run_pbar.set_postfix({"Run": f"{run + 1}/{num_runs}"})
         
-        # Create environment and algorithm
+        # Create environment and algorithm with pre-generated matrices
         env = SimpleEnvironment(
             num_arms=10,
             num_optimal=3,
             optimal_mean=0.9,
             suboptimal_mean=0.1,
             availability_rate=0.5,
-            max_combination_size=3
+            max_combination_size=3,
+            num_rounds=num_rounds,  # Pre-generate availability matrix
+            pre_generate_rewards=True,  # Pre-generate rewards matrix
+            seed=42 + run  # Different seed for each run
         )
         
         algorithm = CombTS(environment=env, alpha=1.0, beta=1.0)
@@ -53,28 +72,46 @@ def run_simple_simulation(num_rounds: int = 10000, num_runs: int = 5) -> Dict[st
         total_reward = 0
         total_regret = 0
         
-        for round_num in range(num_rounds):
-            # Reset available arms for this round
-            env.reset_available_arms()
+        # Create progress bar for rounds
+        if show_round_progress:
+            round_pbar = tqdm(range(num_rounds), desc=f"Run {run + 1} rounds", 
+                             unit="round", leave=False)
+        else:
+            round_pbar = range(num_rounds)
+        
+        for round_num in round_pbar:
+            # Get available arms for this round directly from matrix
+            available_arms = env.get_available_arms_for_round(round_num)
             
-            # Select combination (this will use the consistent available arms)
+            # Select combination using the available arms
             selected_combination = algorithm.select_combination()
             
-            # Generate rewards
+            # Generate rewards for selected combination
             rewards = {}
             total_round_reward = 0
             if selected_combination:
-                rewards = env.generate_combination_reward(selected_combination)
+                # Get rewards from pre-generated matrix if available
+                if hasattr(env, 'rewards_matrix'):
+                    for arm in selected_combination:
+                        rewards[arm] = env.get_reward_for_round(arm, round_num)
+                else:
+                    rewards = env.generate_combination_reward(selected_combination)
                 total_round_reward = sum(rewards.values())
             
             # Update algorithm
             algorithm.update_posterior(selected_combination, rewards)
             
-            # Calculate regret using the same available arms that were used by the algorithm
-            available_arms = env.sample_available_arms_once()
+            # Calculate regret using the same available arms
             optimal_combination = env.get_optimal_combination(available_arms)
-            optimal_reward = sum(env.arm_means[arm] for arm in optimal_combination)
-            regret = optimal_reward - total_round_reward
+            
+            # Calculate expected rewards for fair comparison
+            optimal_expected_reward = sum(env.arm_means[arm] for arm in optimal_combination) if optimal_combination else 0
+            selected_expected_reward = sum(env.arm_means[arm] for arm in selected_combination) if selected_combination else 0
+            
+            # Calculate regret as difference in expected rewards
+            # This ensures we compare expected rewards (mean values) rather than 
+            # mixing expected rewards (optimal) with instantaneous rewards (selected)
+            regret = optimal_expected_reward - selected_expected_reward
             
             # Update cumulative values
             total_reward += total_round_reward
@@ -83,8 +120,12 @@ def run_simple_simulation(num_rounds: int = 10000, num_runs: int = 5) -> Dict[st
             cumulative_rewards.append(total_reward)
             cumulative_regrets.append(total_regret)
             
-            if round_num % 1000 == 0 and round_num > 0:
-                print(f"  Round {round_num}: Cumulative regret = {total_regret:.2f}")
+            # Update progress bar with current regret
+            if show_regret_updates and isinstance(round_pbar, tqdm):
+                round_pbar.set_postfix({
+                    "Regret": f"{total_regret:.2f}",
+                    "Reward": f"{total_reward:.2f}"
+                })
         
         all_cumulative_regrets.append(cumulative_regrets)
         all_cumulative_rewards.append(cumulative_rewards)
@@ -199,8 +240,9 @@ def main():
     print("Simple Environment CombTS Test")
     print("=" * 40)
     
-    # Run simulation
-    results = run_simple_simulation(num_rounds=10000, num_runs=5)
+    # Run simulation with configurable progress level
+    # Options: "minimal" (no progress bars), "normal" (run progress), "detailed" (full progress)
+    results = run_simple_simulation(num_rounds=10000, num_runs=5, progress_level="normal")
     
     # Analyze results
     print(f"\nSimulation completed!")
