@@ -560,8 +560,10 @@ if __name__ == "__main__":
     print(f"  Output format: {args.format}")
     print(f"  Show plot: {plot_options['show_plot']}")
     print(f"  Save plot: {plot_options['save_plot']}")
+    print(f"  Show network: {not args.no_network}")
     print()
     
     main(link_availability_rate=args.availability, 
          gamma_params=gamma_params, 
-         plot_options=plot_options) 
+         plot_options=plot_options,
+         show_network=not args.no_network) 
