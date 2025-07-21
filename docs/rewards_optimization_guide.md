@@ -319,7 +319,7 @@ print(f"Memory usage: {info['memory_usage_mb']:.2f} MB")
 3. **Parallel Generation**: Generate rewards in parallel
 4. **Database Storage**: Store matrices in database for very large datasets
 
-### Integration with CombTS
-- Seamless integration with existing CombTS algorithms
+### Integration with CTS-B
+- Seamless integration with existing CTS-B algorithms
 - No changes required to algorithm implementation
 - Performance improvements transparent to users 

@@ -2,7 +2,7 @@
 
 This project implements a simulation system for network routing with combinatorial bandits with sleeping arms. The system consists of two main components:
 
-1. **CombTS (Combinatorial Thompson Sampling)**: A combinatorial bandit algorithm that can handle sleeping arms (arms that may not be available at every round)
+1. **CTS-B (Combinatorial Thompson Sampling - Bandit)**: A combinatorial bandit algorithm that can handle sleeping arms (arms that may not be available at every round)
 2. **RoutingEnvironment**: A network routing environment that simulates link availability and generates rewards
 
 ## Project Structure
@@ -51,7 +51,7 @@ CombTS_INFOCOM26/
 
 ## Key Features
 
-### CombTS Algorithm
+### CTS-B Algorithm
 - **Environment-Based Design**: Takes an environment instance that provides available arms and feasible combinations
 - **Posterior Sampling**: Draws samples from Beta posterior distributions for each arm
 - **Combinatorial Selection**: Selects feasible combinations with highest sum of posterior samples
@@ -65,13 +65,13 @@ CombTS_INFOCOM26/
 - **Reward Generation**: Generates Bernoulli rewards based on link-specific means
 
 ### Simple Environment
-- **Test Environment**: Simple environment for testing CombTS algorithm
+- **Test Environment**: Simple environment for testing CTS-B algorithm
 - **Configurable Arms**: 10 arms with 3 optimal (Bernoulli(0.9)) and 7 suboptimal (Bernoulli(0.1))
 - **Sleeping Arms**: Each arm has 0.5 availability rate
 - **Combinatorial Constraints**: Maximum combination size of 3 arms
 
 ### Simulation System
-- **Modular Design**: CombTS and environment are completely separate
+- **Modular Design**: CTS-B and environment are completely separate
 - **Comprehensive Tracking**: Records all simulation data for analysis
 - **Visualization**: Built-in plotting and network visualization
 - **Results Export**: Saves results as JSON and plots as PNG
@@ -97,7 +97,7 @@ The system includes a test case with a 3x3 mesh network:
 
 ### 2. Simple Environment
 
-A simple test environment for verifying CombTS algorithm performance:
+A simple test environment for verifying CTS-B algorithm performance:
 
 - **10 arms**: 3 optimal arms with Bernoulli(0.9), 7 suboptimal arms with Bernoulli(0.1)
 - **Sleeping arms**: Each arm has 0.5 availability rate
@@ -202,10 +202,10 @@ python test/test_progress_performance.py
 
 ## API Reference
 
-### CombTS Class
+### CTS-B Class
 
 ```python
-class CombTS:
+class CTSB:
     def __init__(self, environment, alpha: float = 1.0, beta: float = 1.0)
     def select_combination(self) -> Set[int]
     def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float])
@@ -259,7 +259,7 @@ class RoutingSimulation:
 ### Adding New Bandit Algorithms
 
 1. Create a new class in `src/bandits/`
-2. Implement the same interface as `CombTS`
+2. Implement the same interface as `CTSB`
 3. Update `src/bandits/__init__.py`
 
 ### Adding New Environments

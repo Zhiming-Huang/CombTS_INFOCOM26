@@ -6,7 +6,7 @@ import json
 import os
 from datetime import datetime
 
-from src.bandits.comb_ts import CombTS
+from src.bandits.cts_b import CTSB
 from src.environments.routing_environment import RoutingEnvironment
 
 
@@ -14,7 +14,7 @@ class RoutingSimulation:
     """
     Main simulation class for network routing with combinatorial bandits.
     
-    This class orchestrates the interaction between the CombTS algorithm
+    This class orchestrates the interaction between the CTS-B algorithm
     and the routing environment.
     """
     
@@ -31,8 +31,8 @@ class RoutingSimulation:
             availability_rates: Dictionary mapping link_id to availability probability
             source: Source node for routing
             destination: Destination node for routing
-            alpha: Prior parameter for CombTS
-            beta: Prior parameter for CombTS
+            alpha: Prior parameter for CTS-B
+            beta: Prior parameter for CTS-B
         """
         self.network_topology = network_topology
         self.source = source
@@ -42,7 +42,7 @@ class RoutingSimulation:
         
         # Initialize environment and algorithm
         self.environment = RoutingEnvironment(network_topology, link_means, availability_rates)
-        self.algorithm = CombTS(self.environment.num_links, alpha, beta)
+        self.algorithm = CTSB(self.environment.num_links, alpha, beta)
         
         # Simulation tracking
         self.round = 0
@@ -81,7 +81,7 @@ class RoutingSimulation:
             self.source, self.destination, available_links
         )
         
-        # Step 3: Select path using CombTS
+        # Step 3: Select path using CTS-B
         selected_path = self.algorithm.select_combination(available_links, feasible_paths)
         
         # Step 4: Generate rewards

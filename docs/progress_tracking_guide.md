@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains the different progress tracking options available in the CombTS simulation framework and their performance characteristics.
+This guide explains the different progress tracking options available in the CTS-B simulation framework and their performance characteristics.
 
 ## Available Progress Levels
 

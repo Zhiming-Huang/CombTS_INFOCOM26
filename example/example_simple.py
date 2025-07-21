@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple example demonstrating the new CombTS interface with environment.
+Simple example demonstrating the new CTS-B interface with environment.
 """
 
 import sys
@@ -10,13 +10,13 @@ sys.path.append('.')
 import numpy as np
 import matplotlib.pyplot as plt
 
-from src.bandits.comb_ts import CombTS
+from src.bandits.cts_b import CTSB
 from src.environments.simple_environment import SimpleEnvironment
 
 
 def main():
-    """Demonstrate the new CombTS interface."""
-    print("CombTS with Environment Interface Demo")
+    """Demonstrate the new CTS-B interface."""
+    print("CTS-B with Environment Interface Demo")
     print("=" * 40)
     
     # Create simple environment
@@ -29,8 +29,8 @@ def main():
         max_combination_size=3
     )
     
-    # Create CombTS algorithm with environment
-    algorithm = CombTS(environment=env, alpha=1.0, beta=1.0)
+    # Create CTS-B algorithm with environment
+    algorithm = CTSB(environment=env, alpha=1.0, beta=1.0)
     
     print(f"Environment: {env.num_arms} arms, {env.num_optimal} optimal")
     print(f"Algorithm: {algorithm.num_arms} arms")

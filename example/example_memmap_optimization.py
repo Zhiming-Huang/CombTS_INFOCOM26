@@ -9,7 +9,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
 from environments.simple_environment_memmap import SimpleEnvironmentMemmap
-from bandits.comb_ts import CombTS
+from bandits.cts_b import CTSB
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -45,7 +45,7 @@ def demo_memory_mapped_optimization():
     print(f"  Total available entries: {env_info['total_available']}")
     
     # Initialize algorithm
-    algorithm = CombTS(env)
+    algorithm = CTSB(env)
     
     # Run simulation
     print(f"\nRunning large-scale simulation...")

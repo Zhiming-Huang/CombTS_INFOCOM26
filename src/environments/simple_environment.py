@@ -6,7 +6,7 @@ import os
 
 class SimpleEnvironment:
     """
-    Simple environment for testing CombTS algorithm.
+    Simple environment for testing CTS-B algorithm.
     
     This environment has 10 arms:
     - 3 optimal arms with Bernoulli(0.9) reward distribution
@@ -18,10 +18,9 @@ class SimpleEnvironment:
     def __init__(self, num_arms: int = 10, num_optimal: int = 3, 
                  optimal_mean: float = 0.9, suboptimal_mean: float = 0.1,
                  availability_rate: float = 0.5, max_combination_size: int = 3,
-                 num_rounds: int = None, pre_generate_rewards: bool = False, seed: int = None):
+                 num_rounds: int = None, pre_generate_rewards: bool = False, rng: np.random.Generator = None):
         """
         Initialize the simple environment.
-        
         Args:
             num_arms: Total number of arms
             num_optimal: Number of optimal arms
@@ -31,7 +30,7 @@ class SimpleEnvironment:
             max_combination_size: Maximum size of feasible combinations
             num_rounds: Number of rounds to pre-generate available arms (if None, generate on-demand)
             pre_generate_rewards: Whether to pre-generate all rewards for all rounds
-            seed: Random seed for reproducibility
+            rng: numpy.random.Generator for reproducibility (if None, creates a new default_rng)
         """
         self.num_arms = num_arms
         self.num_optimal = num_optimal
@@ -41,17 +40,9 @@ class SimpleEnvironment:
         self.max_combination_size = max_combination_size
         self.num_rounds = num_rounds
         self.pre_generate_rewards = pre_generate_rewards
-        
-        # Set random seed for reproducibility
-        if seed is not None:
-            self.rng = np.random.default_rng(seed)
-            random.seed(seed)
-        else:
-            self.rng = np.random.default_rng()
-        
+        self.rng = rng if rng is not None else np.random.default_rng()
         # Define which arms are optimal (first num_optimal arms)
         self.optimal_arms = set(range(num_optimal))
-        
         # Create reward means for each arm
         self.arm_means = {}
         for arm in range(num_arms):
@@ -59,41 +50,25 @@ class SimpleEnvironment:
                 self.arm_means[arm] = optimal_mean
             else:
                 self.arm_means[arm] = suboptimal_mean
-        
         # Calculate optimal expected reward
         self.optimal_expected_reward = num_optimal * optimal_mean
-        
         # Generate availability matrix if num_rounds is specified
         if num_rounds is not None:
             self._generate_availability_matrix()
-        
         # Generate rewards matrix if pre_generate_rewards is True
         if num_rounds is not None and pre_generate_rewards:
             self._generate_rewards_matrix()
     
     def _generate_availability_matrix(self):
-        """
-        Generate availability matrix for all rounds.
-        Shape: (num_arms, num_rounds), values: 0 or 1
-        """
-        # Generate random matrix with availability_rate probability
-        self.availability_matrix = self.rng.binomial(1, self.availability_rate, 
-                                                   size=(self.num_arms, self.num_rounds))
-        print(f"Generated availability matrix: {self.availability_matrix.shape}")
+        self.availability_matrix = self.rng.binomial(1, self.availability_rate, size=(self.num_arms, self.num_rounds))
+        # print(f"Generated availability matrix: {self.availability_matrix.shape}")
     
     def _generate_rewards_matrix(self):
-        """
-        Generate rewards matrix for all rounds.
-        Shape: (num_arms, num_rounds), values: 0 or 1
-        """
         self.rewards_matrix = np.zeros((self.num_arms, self.num_rounds), dtype=np.int8)
-        
         for arm in range(self.num_arms):
             mean = self.arm_means[arm]
-            # Generate rewards for this arm across all rounds
             self.rewards_matrix[arm, :] = self.rng.binomial(1, mean, self.num_rounds)
-        
-        print(f"Generated rewards matrix: {self.rewards_matrix.shape}")
+        # print(f"Generated rewards matrix: {self.rewards_matrix.shape}")
     
     def get_available_arms_for_round(self, round_idx: int) -> Set[int]:
         """
@@ -148,7 +123,7 @@ class SimpleEnvironment:
         """
         available_arms = set()
         for arm in range(self.num_arms):
-            if random.random() < self.availability_rate:
+            if self.rng.random() < self.availability_rate:
                 available_arms.add(arm)
         return available_arms
     
@@ -164,63 +139,20 @@ class SimpleEnvironment:
         """
         return available_arms
     
-    def sample_available_arms_once(self) -> Set[int]:
-        """
-        Get available arms for the current round (DEPRECATED - use get_available_arms_for_round instead).
-        
-        Returns:
-            Set of available arm IDs
-        """
-        import warnings
-        warnings.warn("sample_available_arms_once is deprecated. Use get_available_arms_for_round(round_idx) instead.", 
-                     DeprecationWarning, stacklevel=2)
-        
-        if hasattr(self, 'availability_matrix'):
-            # Use pre-generated matrix with current round
-            if not hasattr(self, '_current_round'):
-                self._current_round = 0
-            available_arms = self.get_available_arms_for_round(self._current_round)
-            self._current_round += 1  # Increment for next call
-            return available_arms
-        else:
-            # Fallback to on-demand generation
-            if not hasattr(self, '_current_available_arms'):
-                self._current_available_arms = self.get_available_arms()
-            return self._current_available_arms.copy()
-    
-    def reset_available_arms(self):
-        """
-        Move to next round (for backward compatibility).
-        """
-        if hasattr(self, 'availability_matrix'):
-            # Move to next round
-            if not hasattr(self, '_current_round'):
-                self._current_round = 0
-            self._current_round += 1
-        else:
-            # Fallback to old behavior
-            if hasattr(self, '_current_available_arms'):
-                delattr(self, '_current_available_arms')
-    
     def get_feasible_combinations(self, available_arms: Set[int]) -> List[Set[int]]:
         """
-        Get all feasible combinations from available arms.
-        
+        Get only the largest feasible combinations from available arms.
         Args:
             available_arms: Set of available arm IDs
-            
         Returns:
-            List of feasible combinations (each is a set of arms)
+            List of feasible combinations (each is a set of arms), only the largest size
         """
+        from itertools import combinations
         feasible_combinations = []
-        
-        # Generate all subsets of available arms with size <= max_combination_size
+        max_size = min(self.max_combination_size, len(available_arms))
         available_list = list(available_arms)
-        for size in range(1, min(self.max_combination_size + 1, len(available_arms) + 1)):
-            from itertools import combinations
-            for combo in combinations(available_list, size):
-                feasible_combinations.append(set(combo))
-        
+        for combo in combinations(available_list, max_size):
+            feasible_combinations.append(set(combo))
         return feasible_combinations
     
     def generate_reward(self, arm: int) -> float:

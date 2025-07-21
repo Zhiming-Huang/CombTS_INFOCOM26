@@ -7,7 +7,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(
-    name="combts-routing-simulation",
+    name="ctsb-routing-simulation",
     version="1.0.0",
     author="Your Name",
     author_email="your.email@example.com",
@@ -41,7 +41,7 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "combts-demo=example:main",
+            "ctsb-demo=example:main",
         ],
     },
 ) 

@@ -1,18 +1,18 @@
-# CombTS Examples
+# CTS-B Examples
 
-This directory contains various examples demonstrating different features and optimizations of the CombTS algorithm.
+This directory contains various examples demonstrating different features and optimizations of the CTS-B algorithm.
 
 ## 📁 Example Files
 
 ### 🚀 **Basic Examples**
 
 #### `example.py`
-- **Purpose**: Basic demonstration of CombTS algorithm
+- **Purpose**: Basic demonstration of CTS-B algorithm
 - **Features**: Simple environment setup and algorithm execution
-- **Use case**: Getting started with CombTS
+- **Use case**: Getting started with CTS-B
 
 #### `example_simple.py`
-- **Purpose**: Simple environment test with CombTS
+- **Purpose**: Simple environment test with CTS-B
 - **Features**: 10 arms (3 optimal, 7 suboptimal), regret analysis
 - **Use case**: Basic algorithm validation
 
