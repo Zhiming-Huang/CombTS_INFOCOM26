@@ -2,25 +2,25 @@ import numpy as np
 from typing import List, Set, Dict, Any
 import random
 import os
+import tempfile
 
 
-class SimpleEnvironment:
+class SimpleEnvironmentMemmap:
     """
-    Simple environment for testing CombTS algorithm.
+    Simple environment with memory-mapped availability matrix for large-scale simulations.
     
-    This environment has 10 arms:
-    - 3 optimal arms with Bernoulli(0.9) reward distribution
-    - 7 suboptimal arms with Bernoulli(0.1) reward distribution
-    - Each arm has 0.5 availability rate
-    - Feasible combinations are all subsets of available arms with size <= 3
+    This environment uses memory mapping to handle availability matrices that are too large
+    to fit in memory. It provides the same interface as SimpleEnvironment but with
+    disk-based storage for scalability.
     """
     
     def __init__(self, num_arms: int = 10, num_optimal: int = 3, 
                  optimal_mean: float = 0.9, suboptimal_mean: float = 0.1,
                  availability_rate: float = 0.5, max_combination_size: int = 3,
-                 num_rounds: int = None, seed: int = None):
+                 num_rounds: int = None, seed: int = None, 
+                 matrix_file: str = None, chunk_size: int = 1000):
         """
-        Initialize the simple environment.
+        Initialize the simple environment with memory mapping.
         
         Args:
             num_arms: Total number of arms
@@ -29,8 +29,10 @@ class SimpleEnvironment:
             suboptimal_mean: Mean reward for suboptimal arms
             availability_rate: Probability that each arm is available
             max_combination_size: Maximum size of feasible combinations
-            num_rounds: Number of rounds to pre-generate available arms (if None, generate on-demand)
+            num_rounds: Number of rounds to pre-generate available arms
             seed: Random seed for reproducibility
+            matrix_file: Path to memory-mapped file (if None, creates temporary file)
+            chunk_size: Size of chunks for matrix generation
         """
         self.num_arms = num_arms
         self.num_optimal = num_optimal
@@ -39,6 +41,7 @@ class SimpleEnvironment:
         self.availability_rate = availability_rate
         self.max_combination_size = max_combination_size
         self.num_rounds = num_rounds
+        self.chunk_size = chunk_size
         
         # Set random seed for reproducibility
         if seed is not None:
@@ -61,21 +64,59 @@ class SimpleEnvironment:
         
         # Generate availability matrix if num_rounds is specified
         if num_rounds is not None:
-            self._generate_availability_matrix()
+            self._generate_memory_mapped_matrix(matrix_file)
     
-    def _generate_availability_matrix(self):
+    def _generate_memory_mapped_matrix(self, matrix_file: str = None):
         """
-        Generate availability matrix for all rounds.
-        Shape: (num_arms, num_rounds), values: 0 or 1
+        Generate availability matrix using memory mapping.
+        
+        Args:
+            matrix_file: Path to memory-mapped file (if None, creates temporary file)
         """
-        # Generate random matrix with availability_rate probability
-        self.availability_matrix = np.random.binomial(1, self.availability_rate, 
-                                                    size=(self.num_arms, self.num_rounds))
-        print(f"Generated availability matrix: {self.availability_matrix.shape}")
+        if matrix_file is None:
+            # Create temporary file with unique name
+            temp_dir = tempfile.gettempdir()
+            import uuid
+            unique_id = str(uuid.uuid4())[:8]
+            matrix_file = os.path.join(temp_dir, f'availability_matrix_{os.getpid()}_{unique_id}.npy')
+            self._is_temp_file = True
+        else:
+            self._is_temp_file = False
+        
+        self.matrix_file = matrix_file
+        
+        print(f"Creating memory-mapped matrix: {self.num_arms} arms × {self.num_rounds} rounds")
+        print(f"Matrix file: {matrix_file}")
+        
+        # Create memory-mapped file
+        self.availability_matrix = np.memmap(matrix_file, dtype='uint8', mode='w+', 
+                                           shape=(self.num_arms, self.num_rounds))
+        
+        # Generate matrix in chunks to avoid memory issues
+        print("Generating availability matrix in chunks...")
+        for chunk_start in range(0, self.num_rounds, self.chunk_size):
+            chunk_end = min(chunk_start + self.chunk_size, self.num_rounds)
+            chunk_size_actual = chunk_end - chunk_start
+            
+            # Generate chunk
+            chunk = np.random.binomial(1, self.availability_rate, 
+                                     size=(self.num_arms, chunk_size_actual))
+            
+            # Write chunk to memory-mapped file
+            self.availability_matrix[:, chunk_start:chunk_end] = chunk
+            
+            # Progress report
+            if chunk_start % (self.chunk_size * 10) == 0:
+                progress = (chunk_start / self.num_rounds) * 100
+                print(f"  Progress: {progress:.1f}%")
+        
+        # Flush to disk
+        self.availability_matrix.flush()
+        print("Matrix generation completed!")
     
     def get_available_arms_for_round(self, round_idx: int) -> Set[int]:
         """
-        Get available arms for a specific round from the pre-generated matrix.
+        Get available arms for a specific round from the memory-mapped matrix.
         
         Args:
             round_idx: Round index (0-based)
@@ -152,6 +193,28 @@ class SimpleEnvironment:
             if hasattr(self, '_current_available_arms'):
                 delattr(self, '_current_available_arms')
     
+    def reset_round_counter(self):
+        """
+        Reset the round counter to 0 (call this at the start of a new simulation).
+        """
+        if hasattr(self, 'availability_matrix'):
+            self._current_round = 0
+        else:
+            if hasattr(self, '_current_available_arms'):
+                delattr(self, '_current_available_arms')
+    
+    def get_current_round(self) -> int:
+        """
+        Get the current round number.
+        
+        Returns:
+            Current round number
+        """
+        if hasattr(self, 'availability_matrix'):
+            return getattr(self, '_current_round', 0)
+        else:
+            return 0
+    
     def get_feasible_combinations(self, available_arms: Set[int]) -> List[Set[int]]:
         """
         Get all feasible combinations from available arms.
@@ -223,28 +286,6 @@ class SimpleEnvironment:
         # Return the top arms up to max_combination_size
         return set(sorted_arms[:self.max_combination_size])
     
-    def reset_round_counter(self):
-        """
-        Reset the round counter to 0 (call this at the start of a new simulation).
-        """
-        if hasattr(self, 'availability_matrix'):
-            self._current_round = 0
-        else:
-            if hasattr(self, '_current_available_arms'):
-                delattr(self, '_current_available_arms')
-    
-    def get_current_round(self) -> int:
-        """
-        Get the current round number.
-        
-        Returns:
-            Current round number
-        """
-        if hasattr(self, 'availability_matrix'):
-            return getattr(self, '_current_round', 0)
-        else:
-            return 0
-    
     def get_availability_matrix_info(self) -> Dict[str, Any]:
         """
         Get information about the availability matrix.
@@ -256,12 +297,16 @@ class SimpleEnvironment:
             return {'matrix_generated': False}
         
         matrix = self.availability_matrix
+        file_size_mb = os.path.getsize(self.matrix_file) / (1024 * 1024)
+        
         return {
             'matrix_generated': True,
             'shape': matrix.shape,
             'total_available': np.sum(matrix),
             'availability_rate_actual': np.mean(matrix),
-            'memory_usage_mb': matrix.nbytes / (1024 * 1024)
+            'file_size_mb': file_size_mb,
+            'matrix_file': self.matrix_file,
+            'is_temp_file': getattr(self, '_is_temp_file', False)
         }
     
     def get_environment_info(self) -> Dict[str, Any]:
@@ -280,11 +325,23 @@ class SimpleEnvironment:
             'availability_rate': self.availability_rate,
             'max_combination_size': self.max_combination_size,
             'arm_means': self.arm_means.copy(),
-            'optimal_expected_reward': self.optimal_expected_reward
+            'optimal_expected_reward': self.optimal_expected_reward,
+            'storage_type': 'memory_mapped'
         }
         
         # Add matrix information
         matrix_info = self.get_availability_matrix_info()
         info.update(matrix_info)
         
-        return info 
+        return info
+    
+    def __del__(self):
+        """
+        Cleanup temporary file if it was created.
+        """
+        if hasattr(self, '_is_temp_file') and self._is_temp_file:
+            try:
+                if os.path.exists(self.matrix_file):
+                    os.remove(self.matrix_file)
+            except:
+                pass  # Ignore cleanup errors 
