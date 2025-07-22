@@ -1,9 +1,25 @@
 # Combinatorial Bandit Routing Simulation
 
-This project implements a simulation system for network routing with combinatorial bandits with sleeping arms. The system consists of two main components:
+This project implements a comprehensive simulation system for network routing with multiple combinatorial bandit algorithms. The system supports various bandit algorithms and provides extensive analysis capabilities with statistical confidence intervals.
 
-1. **CTS-B (Combinatorial Thompson Sampling - Bandit)**: A combinatorial bandit algorithm that can handle sleeping arms (arms that may not be available at every round)
-2. **RoutingEnvironment**: A network routing environment that simulates link availability and generates rewards
+## Supported Algorithms
+
+1. **CTS-B (Combinatorial Thompson Sampling - Bandit)**: Base combinatorial Thompson sampling algorithm
+2. **CombUCB**: Combinatorial Upper Confidence Bound algorithm
+3. **CTS-G (Combinatorial Thompson Sampling - Gamma)**: CTS with gamma parameter for exploration control
+4. **CL-SG (Combinatorial Learning - Stochastic Gradient)**: Stochastic gradient-based combinatorial learning
+5. **BG-CTS (Bayesian Gaussian - Combinatorial Thompson Sampling)**: Bayesian Gaussian variant of CTS
+
+## Key Features
+
+- **Multiple Bandit Algorithms**: Support for 5 different combinatorial bandit algorithms
+- **Real Data Driven**: Uses actual wireless mesh network topology and link quality data from Qurinet deployment
+- **Improved Availability Calculation**: Multi-factor weighted calculation using signal strength, quality, channel congestion, transmission power, distance, and frequency interference
+- **Gamma Parameter Analysis**: Comprehensive comparison of different gamma values (0.01, 0.1, 0.5, 1.0) for CTS-G and CL-SG
+- **Statistical Analysis**: 95% confidence intervals using t-student distribution
+- **Memory-Mapped Data Storage**: Efficient handling of large-scale simulations
+- **Professional Plotting**: Seaborn whitegrid style with LaTeX rendering
+- **Network Routing**: 4x4 wireless mesh network environment and real Qurinet wireless mesh network
 
 ## Project Structure
 
@@ -12,30 +28,31 @@ CombTS_INFOCOM26/
 ├── src/
 │   ├── bandits/
 │   │   ├── __init__.py
-│   │   └── comb_ts.py              # Combinatorial Thompson Sampling algorithm
+│   │   ├── cts_b.py                # CTS-B algorithm
+│   │   ├── comb_ucb.py             # CombUCB algorithm
+│   │   ├── cts_g.py                # CTS-G algorithm
+│   │   ├── cl_sg.py                # CL-SG algorithm
+│   │   └── bg_cts.py               # BG-CTS algorithm
 │   ├── environments/
 │   │   ├── __init__.py
 │   │   ├── routing_environment.py  # Network routing environment
 │   │   ├── simple_environment.py   # Simple test environment
-│   │   └── simple_environment_memmap.py  # Memory-mapped environment
+│   │   ├── real_network_environment.py  # Real network environment
+│   │   └── qurinet_environment.py  # Qurinet real wireless mesh network
 │   ├── utils/
 │   │   ├── __init__.py
-│   │   └── network_utils.py        # Network creation utilities
+│   │   ├── network_utils.py        # Network creation utilities
+│   │   └── plotting.py             # Professional plotting utilities
 │   ├── __init__.py
 │   └── simulation.py               # Main simulation orchestrator
 ├── example/                        # Example scripts and demonstrations
 │   ├── README.md                   # Examples documentation
-│   ├── example.py                  # Basic demonstration
-│   ├── example_simple.py           # Simple environment test
-│   ├── example_matrix_optimization.py  # Matrix optimization
-│   ├── example_rewards_optimization.py # Rewards optimization
-│   ├── example_memmap_optimization.py  # Memory-mapped optimization
-│   └── example_progress_tracking.py    # Progress tracking demo
+│   ├── example_routing_4x4_memmap.py  # Comprehensive routing simulation with all algorithms
+│   ├── example_real_network_memmap.py  # Real network environment simulation
+│   └── example_qurinet_memmap.py   # Qurinet real wireless mesh network simulation
 ├── test/                           # Test scripts
-│   ├── test_simulation.py          # Main simulation tests
-│   ├── test_simple_environment.py  # Simple environment tests
-│   ├── test_progress_tracking.py   # Progress tracking tests
-│   └── test_progress_performance.py # Performance tests
+│   ├── test_simple_environment_memmap_cumulative_only.py  # Memory-mapped simple environment tests
+│   └── test_routing_environment_4x4.py  # 4x4 routing environment tests
 ├── docs/                           # Documentation
 │   ├── rewards_optimization_guide.md
 │   ├── new_rng_guide.md
@@ -49,62 +66,99 @@ CombTS_INFOCOM26/
 └── README.md                      # This file
 ```
 
-## Key Features
+## Algorithm Details
 
 ### CTS-B Algorithm
-- **Environment-Based Design**: Takes an environment instance that provides available arms and feasible combinations
 - **Posterior Sampling**: Draws samples from Beta posterior distributions for each arm
 - **Combinatorial Selection**: Selects feasible combinations with highest sum of posterior samples
 - **Sleeping Arms Support**: Handles arms that may not be available at every round
 - **Posterior Updates**: Updates Beta posterior parameters based on observed rewards
 
-### Routing Environment
-- **Network Topology**: Supports arbitrary NetworkX graphs
-- **Link Availability**: Simulates link failures with configurable availability rates
-- **Path Finding**: Finds all feasible paths between source and destination
-- **Reward Generation**: Generates Bernoulli rewards based on link-specific means
+### CombUCB Algorithm
+- **Upper Confidence Bound**: Uses UCB principle for exploration-exploitation balance
+- **Combinatorial Optimization**: Selects combinations based on UCB values
+- **Adaptive Exploration**: Automatically adjusts exploration based on uncertainty
 
-### Simple Environment
-- **Test Environment**: Simple environment for testing CTS-B algorithm
-- **Configurable Arms**: 10 arms with 3 optimal (Bernoulli(0.9)) and 7 suboptimal (Bernoulli(0.1))
-- **Sleeping Arms**: Each arm has 0.5 availability rate
-- **Combinatorial Constraints**: Maximum combination size of 3 arms
+### CTS-G Algorithm
+- **Gamma Parameter**: Controls exploration-exploitation trade-off
+- **Adaptive Sampling**: Adjusts sampling strategy based on gamma value
+- **Multiple Configurations**: Supports different gamma values (0.01, 0.1, 0.5, 1.0)
 
-### Simulation System
-- **Modular Design**: CTS-B and environment are completely separate
-- **Comprehensive Tracking**: Records all simulation data for analysis
-- **Visualization**: Built-in plotting and network visualization
-- **Results Export**: Saves results as JSON and plots as PNG
+### CL-SG Algorithm
+- **Stochastic Gradient**: Uses gradient-based optimization for combinatorial selection
+- **Gamma Control**: Similar gamma parameter for exploration control
+- **Learning Rate Adaptation**: Automatically adjusts learning rates
+
+### BG-CTS Algorithm
+- **Bayesian Gaussian**: Uses Gaussian posterior distributions
+- **Continuous Rewards**: Designed for continuous reward spaces
+- **Robust Estimation**: More robust to reward distribution assumptions
+
+## Environment Details
+
+### 4x4 Wireless Mesh Network
+- **Topology**: 4×4 grid network with 16 nodes and 24 links
+- **Source-Destination**: Node 0 (top-left) to Node 15 (bottom-right)
+- **Link Availability**: 0.75 (realistic for wireless mesh networks)
+- **Optimal Path**: 0 → 1 → 2 → 3 → 7 → 11 → 15 (6 links)
+- **Reward Structure**: Optimal path links (0.9), other links (0.8)
+- **Expected Optimal Reward**: 5.4
+
+### Qurinet Real Wireless Mesh Network
+- **Data Source**: Real deployment at Quail Ridge Natural Reserve (https://github.com/cjpatton/qr)
+- **Topology**: 19 nodes with 24 links from actual wireless mesh network
+- **Frequency**: 2.4GHz (channels 1, 6, 11)
+- **Link Quality**: Real signal strength and quality measurements
+- **Improved Availability Calculation**: Multi-factor weighted calculation using:
+  - Signal Strength (40%): -100dBm to -30dBm mapping
+  - Quality (20%): 0-100 quality metric
+  - Channel Congestion (15%): Based on channel usage analysis
+  - Transmission Power (10%): 14-19 dBm power levels
+  - Distance (10%): Estimated from signal strength using free space path loss
+  - Frequency Interference (5%): Adjacent channel interference modeling
+- **Reward Means**: Based on improved availability calculation with realistic variation
+- **Network Characteristics**: Realistic wireless mesh network behavior with environmental factors
+
+### Memory-Mapped Data Storage
+- **Efficient Storage**: Uses numpy.memmap for large-scale data
+- **Persistent Data**: Results preserved for post-hoc analysis
+- **Memory Efficient**: Handles 10,000+ rounds × multiple runs
+- **Statistical Analysis**: Supports confidence interval calculations
 
 ## Test Cases
 
-### 1. 3x3 Mesh Network
+### 1. 4x4 Wireless Mesh Network
 
-The system includes a test case with a 3x3 mesh network:
+The main test case uses a 4x4 wireless mesh network:
 
 ```
-0 -- 1 -- 2
-|    |    |
-3 -- 4 -- 5
-|    |    |
-6 -- 7 -- 8
+ 0 -- 1 -- 2 -- 3
+ |    |    |    |
+ 4 -- 5 -- 6 -- 7
+ |    |    |    |
+ 8 -- 9 -- 10 -- 11
+ |    |    |    |
+ 12 -- 13 -- 14 -- 15
 ```
 
-**Optimal Path**: 0 → 1 → 2 → 5 → 8 (links 0, 2, 4, 9)
-- Links in optimal path: Bernoulli(0.9)
-- Other links: Bernoulli(0.8)
-- Expected optimal reward: 3.6
+**Network Parameters**:
+- **Source**: Node 0 (top-left)
+- **Destination**: Node 15 (bottom-right)
+- **Optimal Path**: 0 → 1 → 2 → 3 → 7 → 11 → 15
+- **Link Availability**: 0.75 (moderate wireless conditions)
+- **Reward Structure**: Optimal path links (0.9), other links (0.8)
+- **Expected Optimal Reward**: 5.4
 
-### 2. Simple Environment
+### 2. Algorithm Performance Analysis
 
-A simple test environment for verifying CTS-B algorithm performance:
+**Statistical Results** (10,000 rounds × 5 runs):
+- **CL-SG (γ=0.1)**: Best performance with 41.18 ± 13.15 final regret
+- **CTSB**: Good performance with 49.08 ± 8.55 final regret
+- **CombUCB**: Moderate performance with 78.60 ± 4.80 final regret
+- **CTS-G (γ=0.1)**: 109.74 ± 11.76 final regret
+- **BG-CTS**: 402.82 ± 10.52 final regret
 
-- **10 arms**: 3 optimal arms with Bernoulli(0.9), 7 suboptimal arms with Bernoulli(0.1)
-- **Sleeping arms**: Each arm has 0.5 availability rate
-- **Combinatorial constraints**: Maximum combination size of 3
-- **Expected optimal reward**: 2.7 (when all 3 optimal arms are available)
-
-**Regret Analysis**: The algorithm demonstrates sublinear regret growth, confirming theoretical guarantees.
+**Confidence Intervals**: All results include 95% confidence intervals using t-student distribution.
 
 ## Installation
 
@@ -121,69 +175,43 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Quick Start with Jupyter Notebook
+### Quick Start
 
-1. Start Jupyter:
-```bash
-jupyter notebook
-```
-
-2. Open `notebooks/simulation_demo.ipynb`
-
-3. Run all cells to see the complete demonstration
-
-### Python Script Usage
-
-```python
-import sys
-import os
-sys.path.append('.')
-
-from src.simulation import RoutingSimulation
-from src.utils.network_utils import (
-    create_3x3_mesh_network,
-    create_test_case_link_means,
-    create_availability_rates
-)
-
-# Create network and configuration
-G = create_3x3_mesh_network()
-link_means = create_test_case_link_means()
-availability_rates = create_availability_rates(rate=0.8)
-
-# Create and run simulation
-sim = RoutingSimulation(
-    network_topology=G,
-    link_means=link_means,
-    availability_rates=availability_rates,
-    source=0,
-    destination=8
-)
-
-# Run simulation
-results = sim.run_simulation(num_rounds=1000)
-
-# Plot results
-sim.plot_results(results)
-
-# Save results
-sim.save_results(results)
-```
-
-### Running Examples
+Run the comprehensive routing simulation with all algorithms:
 
 ```bash
-# Basic examples
-python example/example.py
-python example/example_simple.py
+# Quick test (500 rounds × 3 runs)
+python example/example_routing_4x4_memmap.py --rounds 500 --runs 3
 
-# Performance optimization examples
-python example/example_matrix_optimization.py
-python example/example_rewards_optimization.py
-python example/example_memmap_optimization.py
+# Full experiment (10,000 rounds × 5 runs)
+python example/example_routing_4x4_memmap.py --rounds 10000 --runs 5
 
-# Progress tracking example
-python example/example_progress_tracking.py
+# Keep memory-mapped files for post-hoc analysis
+python example/example_routing_4x4_memmap.py --rounds 2000 --runs 5 --keep-memmap
+```
+
+### Output
+
+The simulation generates three professional PDF plots:
+
+1. **`routing_algorithm_comparison.pdf`**: Comparison of all algorithms (CTS-B, CombUCB, CTS-G(γ=0.1), CL-SG(γ=0.1), BG-CTS)
+2. **`routing_ctsg_gamma_comparison.pdf`**: CTS-G performance across different gamma values
+3. **`routing_clsg_gamma_comparison.pdf`**: CL-SG performance across different gamma values
+
+All plots include:
+- 95% confidence intervals (t-student distribution)
+- Seaborn whitegrid style
+- LaTeX rendering for mathematical symbols
+- Professional formatting suitable for publication
+
+### Running Tests
+
+```bash
+# Test simple environment with memory mapping
+python test/test_simple_environment_memmap_cumulative_only.py
+
+# Test 4x4 routing environment
+python test/test_routing_environment_4x4.py
 ```
 
 ### Running Tests
@@ -202,56 +230,59 @@ python test/test_progress_performance.py
 
 ## API Reference
 
-### CTS-B Class
+### Bandit Algorithms
+
+All algorithms follow the same interface:
 
 ```python
-class CTSB:
-    def __init__(self, environment, alpha: float = 1.0, beta: float = 1.0)
+class BanditAlgorithm:
+    def __init__(self, environment, **kwargs)
     def select_combination(self) -> Set[int]
     def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float])
     def get_arm_statistics(self) -> Dict[str, Any]
 ```
 
+**Available Algorithms**:
+- `CTSB(environment, alpha=1.0, beta=1.0)`: Base Thompson sampling
+- `CombUCB(environment, alpha=1.0)`: Upper confidence bound
+- `CTSG(environment, gamma=0.1, alpha=1.0, beta=1.0)`: Gamma-controlled Thompson sampling
+- `CLSG(environment, gamma=0.1, learning_rate=0.01)`: Stochastic gradient learning
+- `BGCTS(environment, alpha=1.0, beta=1.0)`: Bayesian Gaussian Thompson sampling
+
 ### RoutingEnvironment Class
 
 ```python
 class RoutingEnvironment:
-    def __init__(self, network_topology: nx.Graph, link_means: Dict[int, float],
-                 availability_rates: Optional[Dict[int, float]] = None)
-    def sample_available_links(self) -> Set[int]
-    def get_feasible_paths(self, source: int, destination: int, 
-                          available_links: Set[int]) -> List[Set[int]]
-    def generate_reward(self, link_id: int) -> float
-    def generate_path_reward(self, path: Set[int]) -> Dict[int, float]
-```
-
-### SimpleEnvironment Class
-
-```python
-class SimpleEnvironment:
-    def __init__(self, num_arms: int = 10, num_optimal: int = 3, 
-                 optimal_mean: float = 0.9, suboptimal_mean: float = 0.1,
-                 availability_rate: float = 0.5, max_combination_size: int = 3)
-    def get_available_arms(self) -> Set[int]
+    def __init__(self, graph: nx.Graph, source: int, destination: int,
+                 link_availability_rates: Dict[Tuple[int, int], float],
+                 link_reward_means: Dict[Tuple[int, int], float],
+                 num_rounds: int = 10000, pre_generate_availability: bool = True,
+                 pre_generate_rewards: bool = True, rng: np.random.Generator = None)
+    def get_available_arms_for_round(self, round_num: int) -> Set[int]
     def get_feasible_combinations(self, available_arms: Set[int]) -> List[Set[int]]
-    def generate_reward(self, arm: int) -> float
-    def generate_combination_reward(self, combination: Set[int]) -> Dict[int, float]
     def get_optimal_combination(self, available_arms: Set[int]) -> Set[int]
+    def get_reward_for_round(self, combination: Set[int], round_num: int) -> Dict[int, float]
+    def visualize_network(self, save_path: str = None)
 ```
 
-### RoutingSimulation Class
+### Plotting Utilities
 
 ```python
-class RoutingSimulation:
-    def __init__(self, network_topology: nx.Graph, link_means: Dict[int, float],
-                 availability_rates: Dict[int, float] = None, 
-                 source: int = 0, destination: int = 8,
-                 alpha: float = 1.0, beta: float = 1.0)
-    def run_round(self) -> Dict[str, Any]
-    def run_simulation(self, num_rounds: int) -> Dict[str, Any]
-    def plot_results(self, results: Dict[str, Any], save_path: str = None)
-    def save_results(self, results: Dict[str, Any], output_dir: str = "output")
-    def get_network_visualization(self, save_path: str = None)
+from src.utils.plotting import (
+    plot_routing_algorithm_comparison,
+    plot_gamma_comparison,
+    plot_all_routing_results,
+    setup_plot_style
+)
+
+# Generate all three plots
+plot_all_routing_results(results, output_dir="output/images")
+
+# Custom algorithm comparison
+plot_routing_algorithm_comparison(results, output_path, default_gamma=0.1)
+
+# Gamma parameter analysis
+plot_gamma_comparison(results, "CTS-G", gamma_values, output_path)
 ```
 
 ## Extending the System
@@ -259,26 +290,52 @@ class RoutingSimulation:
 ### Adding New Bandit Algorithms
 
 1. Create a new class in `src/bandits/`
-2. Implement the same interface as `CTSB`
+2. Implement the standard interface:
+   ```python
+   def select_combination(self) -> Set[int]
+   def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float])
+   def get_arm_statistics(self) -> Dict[str, Any]
+   ```
 3. Update `src/bandits/__init__.py`
 
 ### Adding New Environments
 
 1. Create a new class in `src/environments/`
-2. Implement the same interface as `RoutingEnvironment`
+2. Implement the standard interface:
+   ```python
+   def get_available_arms_for_round(self, round_num: int) -> Set[int]
+   def get_feasible_combinations(self, available_arms: Set[int]) -> List[Set[int]]
+   def get_optimal_combination(self, available_arms: Set[int]) -> Set[int]
+   def get_reward_for_round(self, combination: Set[int], round_num: int) -> Dict[int, float]
+   ```
 3. Update `src/environments/__init__.py`
 
 ### Custom Network Topologies
 
-Use the utility functions in `src/utils/network_utils.py` as templates for creating new network topologies.
+Use NetworkX to create custom network topologies and pass them to `RoutingEnvironment`.
+
+### Adding New Plotting Functions
+
+1. Add new functions to `src/utils/plotting.py`
+2. Follow the established style (seaborn whitegrid, LaTeX rendering, confidence intervals)
+3. Update `src/utils/__init__.py`
 
 ## Output Files
 
-The simulation generates several output files in the `output/` directory:
+The simulation generates several output files:
 
-- `simulation_results_YYYYMMDD_HHMMSS.json`: Complete simulation results
-- `simulation_plot_YYYYMMDD_HHMMSS.png`: Visualization of results
-- `network_visualization_YYYYMMDD_HHMMSS.png`: Network topology visualization
+### Plots (`output/images/`)
+- `routing_algorithm_comparison.pdf`: Main algorithm comparison with confidence intervals
+- `routing_ctsg_gamma_comparison.pdf`: CTS-G gamma parameter analysis
+- `routing_clsg_gamma_comparison.pdf`: CL-SG gamma parameter analysis
+
+### Data (`output/data/`)
+- Memory-mapped files (`.dat`) for each algorithm and gamma configuration
+- Preserved for post-hoc analysis when using `--keep-memmap` flag
+
+### Network Visualization
+- Network topology plots showing the 4x4 mesh structure
+- Source-destination paths and link configurations
 
 ## Contributing
 

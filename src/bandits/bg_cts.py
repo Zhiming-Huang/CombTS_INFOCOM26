@@ -39,15 +39,12 @@ class BGCTS:
         if not feasible_combinations or len(available_arms) == 0:
             return set()
         m = min(self.m, len(available_arms))
-        if len(available_arms) <= m:
-            return set(available_arms)
-        std = np.sqrt(self.gbonuses(round_idx)) * self.sigmapost
-        estimate_mean = self.rnd_generator.normal(self.muhats, std)
-        available_indices = np.array(available_arms)
-        available_estimates = estimate_mean[available_indices]
-        if m == 0:
-            return set()
-        top_indices = available_indices[np.argpartition(available_estimates, -m)[-m:]]
+        # Use posterior samples for exploration, else use mean
+        if len(available_arms) > m:
+            std = np.sqrt(self.gbonuses(round_idx)) * self.sigmapost
+            estimate_mean = self.rnd_generator.normal(self.muhats, std)
+        else:
+            estimate_mean = self.muhats
         best_comb = None
         best_score = -np.inf
         for comb in feasible_combinations:
@@ -57,7 +54,7 @@ class BGCTS:
             if score > best_score:
                 best_score = score
                 best_comb = comb
-        return best_comb if best_comb is not None else set(top_indices)
+        return best_comb if best_comb is not None else set()
 
     def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float], round_idx: int):
         """

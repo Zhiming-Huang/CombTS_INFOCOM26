@@ -221,26 +221,27 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
             rng_dict[alg_key] = child_rngs[rng_index]
             rng_index += 1
     
+    # Create environment once for all runs
+    print("Creating routing environment...")
+    graph = create_4x4_mesh_network()
+    optimal_edges = [(0, 1), (1, 2), (2, 3), (3, 7), (7, 11), (11, 15)]
+    
+    env = RoutingEnvironment(
+        graph=graph,
+        source=0,
+        destination=15,
+        link_availability_rates={(edge[0], edge[1]): 0.75 for edge in graph.edges()},
+        link_reward_means={(edge[0], edge[1]): 0.9 if edge in optimal_edges or (edge[1], edge[0]) in optimal_edges else 0.8 
+                          for edge in graph.edges()},
+        num_rounds=num_rounds,
+        pre_generate_availability=True,
+        pre_generate_rewards=True,
+        rng=env_rng
+    )
+    
     for run in run_pbar:
         if show_run_progress:
             run_pbar.set_postfix({"Run": f"{run + 1}/{num_runs}"})
-        
-        # Create environment for this run
-        graph = create_4x4_mesh_network()
-        optimal_edges = [(0, 1), (1, 2), (2, 3), (3, 7), (7, 11), (11, 15)]
-        
-        env = RoutingEnvironment(
-            graph=graph,
-            source=0,
-            destination=15,
-            link_availability_rates={(edge[0], edge[1]): 0.75 for edge in graph.edges()},
-            link_reward_means={(edge[0], edge[1]): 0.9 if edge in optimal_edges or (edge[1], edge[0]) in optimal_edges else 0.8 
-                              for edge in graph.edges()},
-            num_rounds=num_rounds,
-            pre_generate_availability=True,
-            pre_generate_rewards=True,
-            rng=env_rng
-        )
         
         # Create algorithm instances
         algorithm_instances = {}
@@ -267,14 +268,9 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
             if alg_name in base_algorithms:
                 mmap_key = alg_name
             else:
-                # Extract gamma value from algorithm name
-                parts = alg_name.split('_gamma_')
-                if len(parts) == 2:
-                    base_alg = parts[0]
-                    gamma = parts[1]
-                    mmap_key = f"{base_alg.lower()}_gamma_{gamma}"
-                else:
-                    mmap_key = alg_name.lower()
+                # For gamma algorithms, the alg_name is already in the correct format
+                # e.g., "CTS-G_gamma_0.1" -> "cts-g_gamma_0.1"
+                mmap_key = alg_name.lower()
             
             regrets_mmap, rewards_mmap = algorithm_mmaps[mmap_key]
             
