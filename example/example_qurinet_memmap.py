@@ -69,9 +69,11 @@ def setup_qurinet_environment(num_rounds: int = 10000, availability_rate: float 
         num_rounds=num_rounds,
         pre_generate_availability=True,
         pre_generate_rewards=True,
-        availability_rate=availability_rate,
         rng=np.random.default_rng(42)
     )
+    
+    # Set availability rate manually after creation
+    env.availability_rate = availability_rate
     
     return env
 
@@ -377,12 +379,12 @@ def cleanup_temp_files(results: Dict[str, Any], keep_files: bool = False):
         print("\nMemory-mapped files preserved for post-hoc analysis.")
 
 
-def plot_qurinet_results(results: Dict[str, Any], output_dir: str):
+def plot_qurinet_results(results: Dict[str, Any], output_dir: str, default_gamma=0.01):
     """Generate plots for Qurinet results using the same functions as routing."""
     gamma_values = results.get('gamma_values', [0.01, 0.1, 0.5, 1.0])
     
     # Use the same plotting function as routing, but with qurinet-specific file names
-    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="qurinet")
+    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="qurinet", default_gamma=default_gamma)
     
     # Rename files to have qurinet prefix
     import shutil
@@ -419,6 +421,8 @@ def main():
     parser.add_argument("--progress", type=str, default="normal",
                        choices=["quiet", "normal", "verbose"],
                        help="Progress bar level")
+    parser.add_argument("--default-gamma", type=float, default=0.01,
+                       help="Default gamma value for the first comparison plot (default: 0.01)")
     
     args = parser.parse_args()
     
@@ -429,6 +433,7 @@ def main():
     print(f"  Number of runs: {args.runs}")
     print(f"  Link availability rate: {args.availability}")
     print(f"  Keep memory-mapped files: {args.keep_memmap}")
+    print(f"  Default gamma for comparison: {args.default_gamma}")
     
     # Setup environment
     env = setup_qurinet_environment(args.rounds, args.availability)
@@ -453,7 +458,7 @@ def main():
     output_dir = os.path.join(project_root, "output", "images")
     os.makedirs(output_dir, exist_ok=True)
     
-    plot_qurinet_results(results, output_dir)
+    plot_qurinet_results(results, output_dir, args.default_gamma)
     
     # Cleanup
     cleanup_temp_files(results, args.keep_memmap)

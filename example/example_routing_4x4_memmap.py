@@ -1,3 +1,4 @@
+# %%
 #!/usr/bin/env python3
 """
 Example: Routing Environment with 4x4 Mesh Network (Memory-Mapped)
@@ -354,12 +355,13 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
     return results
 
 
-def analyze_routing_results(results: Dict[str, Any]):
+def analyze_routing_results(results: Dict[str, Any], default_gamma=0.01):
     """
     Analyze routing simulation results.
     
     Args:
         results: Results from run_memory_mapped_routing_simulation
+        default_gamma: Default gamma value for comparison (should match plotting)
     """
     print("\nRouting Simulation Results (4x4 Mesh Network):")
     print("=" * 80)
@@ -387,18 +389,18 @@ def analyze_routing_results(results: Dict[str, Any]):
             print(f"  {confidence_level*100:.0f}% CI: [{final_regret_ci[0]:.2f}, {final_regret_ci[1]:.2f}]")
 
     
-    # Print results for gamma algorithms (using default gamma=0.1)
-    print(f"\nGamma Algorithms (γ=0.1):")
+    # Print results for gamma algorithms (using default gamma)
+    print(f"\nGamma Algorithms (γ={default_gamma}):")
     print("-" * 40)
     for alg in gamma_algorithms:
-        alg_key = f"{alg.lower()}_gamma_0.1"
+        alg_key = f"{alg.lower()}_gamma_{default_gamma}"
         if alg_key in results:
             alg_data = results[alg_key]
             final_regret = alg_data['final_regret']
             final_regret_std = alg_data['final_regret_std']
             final_regret_ci = alg_data['final_regret_ci']
             
-            print(f"{alg} (γ=0.1):")
+            print(f"{alg} (γ={default_gamma}):")
             print(f"  Final regret: {final_regret:.2f} ± {final_regret_std:.2f}")
             print(f"  {confidence_level*100:.0f}% CI: [{final_regret_ci[0]:.2f}, {final_regret_ci[1]:.2f}]")
     
@@ -444,7 +446,7 @@ def cleanup_temp_files(results: Dict[str, Any], keep_files: bool = False):
             pass  # File might not exist or already be removed
 
 
-def main(num_rounds=10000, num_runs=5, keep_memmap_files=False):
+def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.01):
     """
     Main function to run the 4x4 routing environment example.
     
@@ -452,6 +454,7 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False):
         num_rounds: Number of rounds per simulation
         num_runs: Number of independent runs
         keep_memmap_files: Whether to keep memory-mapped files for later analysis
+        default_gamma: Default gamma value for the first comparison plot
     """
     print("Routing Environment Example with 4x4 Mesh Network (Memory-Mapped)")
     print("=" * 80)
@@ -495,7 +498,7 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False):
     )
     
     # Analyze results
-    analyze_routing_results(results)
+    analyze_routing_results(results, default_gamma)
     
     # Plot results using utils plotting functions
     print(f"\nGenerating plots...")
@@ -503,7 +506,7 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False):
     output_dir = os.path.join(project_root, 'output', 'images')
     os.makedirs(output_dir, exist_ok=True)
     
-    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="routing_4x4")
+    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="routing_4x4", default_gamma=default_gamma)
     
     # Clean up temporary files
     cleanup_temp_files(results, keep_files=keep_memmap_files)
@@ -521,6 +524,8 @@ if __name__ == "__main__":
                        help='Number of independent runs (default: 5)')
     parser.add_argument('--keep-memmap', action='store_true',
                        help='Keep memory-mapped files for later analysis')
+    parser.add_argument('--default-gamma', type=float, default=0.01,
+                       help='Default gamma value for the first comparison plot (default: 0.01)')
     
     args, unknown = parser.parse_known_args()
     
@@ -528,6 +533,7 @@ if __name__ == "__main__":
     print(f"  Number of rounds: {args.rounds}")
     print(f"  Number of runs: {args.runs}")
     print(f"  Keep memory-mapped files: {args.keep_memmap}")
+    print(f"  Default gamma for comparison: {args.default_gamma}")
     print()
     
-    main(num_rounds=args.rounds, num_runs=args.runs, keep_memmap_files=args.keep_memmap) 
+    main(num_rounds=args.rounds, num_runs=args.runs, keep_memmap_files=args.keep_memmap, default_gamma=args.default_gamma) 
