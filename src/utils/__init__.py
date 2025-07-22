@@ -1,15 +1,10 @@
-from .network_utils import (
-    create_3x3_mesh_network,
-    create_test_case_link_means,
-    create_availability_rates,
-    get_optimal_path_info,
-    print_network_info
-)
+from .network_utils import *
+from .plotting import *
 
 __all__ = [
-    'create_3x3_mesh_network',
-    'create_test_case_link_means',
-    'create_availability_rates',
-    'get_optimal_path_info',
-    'print_network_info'
+    'plot_algorithm_comparison',
+    'plot_gamma_comparison', 
+    'plot_routing_algorithm_comparison',
+    'plot_all_routing_results',
+    'setup_plot_style'
 ] 

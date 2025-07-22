@@ -1,3 +1,4 @@
+# %%
 #!/usr/bin/env python3
 """
 Test script for Routing Environment with 4x4 Mesh Network (Wireless Mesh Network).
