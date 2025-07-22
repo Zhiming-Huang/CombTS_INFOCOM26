@@ -48,12 +48,13 @@ from src.environments.qurinet_environment import QurinetEnvironment
 from src.utils.plotting import setup_plot_style, plot_all_routing_results
 
 
-def setup_qurinet_environment(num_rounds: int = 10000):
+def setup_qurinet_environment(num_rounds: int = 10000, availability_rate: float = 0.85):
     """
     Setup the Qurinet real wireless mesh network environment.
     
     Args:
         num_rounds: Number of rounds for the environment
+        availability_rate: Link availability rate (0.0 to 1.0)
         
     Returns:
         QurinetEnvironment instance
@@ -68,6 +69,7 @@ def setup_qurinet_environment(num_rounds: int = 10000):
         num_rounds=num_rounds,
         pre_generate_availability=True,
         pre_generate_rewards=True,
+        availability_rate=availability_rate,
         rng=np.random.default_rng(42)
     )
     
@@ -329,11 +331,11 @@ def analyze_qurinet_results(results: Dict[str, Any]):
             print(f"  {confidence_level*100:.0f}% CI: [{final_regret_ci[0]:.2f}, {final_regret_ci[1]:.2f}]")
 
     
-    # Print results for gamma algorithms (using default gamma=0.1)
-    print(f"\nGamma Algorithms (γ=0.1):")
+    # Print results for gamma algorithms (using gamma=0.01 for comparison)
+    print(f"\nGamma Algorithms (γ=0.01):")
     print("-" * 40)
     for alg in gamma_algorithms:
-        alg_key = f"{alg.lower()}_gamma_0.1"
+        alg_key = f"{alg.lower()}_gamma_0.01"
         if alg_key in results:
             alg_data = results[alg_key]
             final_regret = alg_data['final_regret']
@@ -380,7 +382,7 @@ def plot_qurinet_results(results: Dict[str, Any], output_dir: str):
     gamma_values = results.get('gamma_values', [0.01, 0.1, 0.5, 1.0])
     
     # Use the same plotting function as routing, but with qurinet-specific file names
-    plot_all_routing_results(results, output_dir, gamma_values)
+    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="qurinet")
     
     # Rename files to have qurinet prefix
     import shutil
@@ -410,6 +412,8 @@ def main():
                        help="Number of rounds per simulation")
     parser.add_argument("--runs", type=int, default=5,
                        help="Number of simulation runs")
+    parser.add_argument("--availability", type=float, default=0.85,
+                       help="Link availability rate (0.0 to 1.0)")
     parser.add_argument("--keep-memmap", action="store_true",
                        help="Keep memory-mapped files for post-hoc analysis")
     parser.add_argument("--progress", type=str, default="normal",
@@ -423,10 +427,11 @@ def main():
     print(f"Configuration:")
     print(f"  Number of rounds: {args.rounds}")
     print(f"  Number of runs: {args.runs}")
+    print(f"  Link availability rate: {args.availability}")
     print(f"  Keep memory-mapped files: {args.keep_memmap}")
     
     # Setup environment
-    env = setup_qurinet_environment(args.rounds)
+    env = setup_qurinet_environment(args.rounds, args.availability)
     
     # Print network statistics
     env.print_network_statistics()

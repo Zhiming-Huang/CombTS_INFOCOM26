@@ -38,13 +38,11 @@ class BGCTS:
         feasible_combinations = self.environment.get_feasible_combinations(set(available_arms))
         if not feasible_combinations or len(available_arms) == 0:
             return set()
-        m = min(self.m, len(available_arms))
-        # Use posterior samples for exploration, else use mean
-        if len(available_arms) > m:
-            std = np.sqrt(self.gbonuses(round_idx)) * self.sigmapost
-            estimate_mean = self.rnd_generator.normal(self.muhats, std)
-        else:
-            estimate_mean = self.muhats
+        
+        # Always use posterior samples for exploration in BG-CTS
+        std = np.sqrt(self.gbonuses(round_idx)) * self.sigmapost
+        estimate_mean = self.rnd_generator.normal(self.muhats, std)
+        
         best_comb = None
         best_score = -np.inf
         for comb in feasible_combinations:

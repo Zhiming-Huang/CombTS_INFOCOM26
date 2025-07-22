@@ -188,7 +188,7 @@ def plot_routing_algorithm_comparison(results: Dict[str, Any],
                                     title: str = "Algorithm Comparison (4x4 Mesh Network)",
                                     figsize: tuple = (4, 3),
                                     use_latex: bool = True,
-                                    default_gamma: float = 0.1):
+                                    default_gamma: float = 0.01):
     """
     Plot algorithm comparison including gamma algorithms with specific gamma values.
     
@@ -264,7 +264,8 @@ def plot_routing_algorithm_comparison(results: Dict[str, Any],
 
 def plot_all_routing_results(results: Dict[str, Any],
                            output_dir: str,
-                           gamma_values: List[float] = [0.01, 0.1, 0.5, 1.0]):
+                           gamma_values: List[float] = [0.01, 0.1, 0.5, 1.0],
+                           file_prefix: str = "routing"):
     """
     Plot all three figures for routing results.
     
@@ -272,11 +273,12 @@ def plot_all_routing_results(results: Dict[str, Any],
         results: Results dictionary with all algorithm data
         output_dir: Directory to save plots
         gamma_values: List of gamma values used in experiments
+        file_prefix: Prefix for output file names to distinguish different examples
     """
     # Plot 1: Algorithm comparison (using default gamma values)
     plot_routing_algorithm_comparison(
         results=results,
-        output_path=f"{output_dir}/routing_algorithm_comparison.pdf",
+        output_path=f"{output_dir}/{file_prefix}_algorithm_comparison.pdf",
         title="Algorithm Comparison (4x4 Mesh Network)"
     )
     
@@ -285,7 +287,7 @@ def plot_all_routing_results(results: Dict[str, Any],
         results=results,
         algorithm_name="CTS-G",
         gamma_values=gamma_values,
-        output_path=f"{output_dir}/routing_ctsg_gamma_comparison.pdf",
+        output_path=f"{output_dir}/{file_prefix}_ctsg_gamma_comparison.pdf",
         title="CTS-G Algorithm: Regret vs Rounds"
     )
     
@@ -294,6 +296,6 @@ def plot_all_routing_results(results: Dict[str, Any],
         results=results,
         algorithm_name="CL-SG",
         gamma_values=gamma_values,
-        output_path=f"{output_dir}/routing_clsg_gamma_comparison.pdf",
+        output_path=f"{output_dir}/{file_prefix}_clsg_gamma_comparison.pdf",
         title="CL-SG Algorithm: Regret vs Rounds"
     ) 

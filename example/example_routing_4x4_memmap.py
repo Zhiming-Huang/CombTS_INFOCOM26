@@ -503,7 +503,7 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False):
     output_dir = os.path.join(project_root, 'output', 'images')
     os.makedirs(output_dir, exist_ok=True)
     
-    plot_all_routing_results(results, output_dir, gamma_values)
+    plot_all_routing_results(results, output_dir, gamma_values, file_prefix="routing_4x4")
     
     # Clean up temporary files
     cleanup_temp_files(results, keep_files=keep_memmap_files)
