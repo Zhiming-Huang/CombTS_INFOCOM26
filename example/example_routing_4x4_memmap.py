@@ -26,6 +26,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import networkx as nx
+import pickle
 from typing import List, Dict, Any
 from tqdm import tqdm
 from scipy import stats
@@ -446,7 +447,7 @@ def cleanup_temp_files(results: Dict[str, Any], keep_files: bool = False):
             pass  # File might not exist or already be removed
 
 
-def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.01):
+def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.01, load_data=None):
     """
     Main function to run the 4x4 routing environment example.
     
@@ -455,9 +456,32 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.
         num_runs: Number of independent runs
         keep_memmap_files: Whether to keep memory-mapped files for later analysis
         default_gamma: Default gamma value for the first comparison plot
+        load_data: Path to pickle file with saved results (optional)
     """
     print("Routing Environment Example with 4x4 Mesh Network (Memory-Mapped)")
     print("=" * 80)
+    
+    if load_data and os.path.exists(load_data):
+        print("=" * 80)
+        print("Loading saved simulation data...")
+        print("=" * 80)
+        with open(load_data, 'rb') as f:
+            results = pickle.load(f)
+        print(f"Results loaded from: {load_data}")
+        print()
+        
+        # Print results summary
+        analyze_routing_results(results, default_gamma)
+        
+        # Generate plots from saved data
+        print("\nGenerating plots from saved data...")
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        output_dir = os.path.join(project_root, 'output', 'images')
+        os.makedirs(output_dir, exist_ok=True)
+        plot_all_routing_results(results, output_dir, results['gamma_values'], file_prefix="routing_4x4", default_gamma=default_gamma)
+        print("Plots generated from saved data!")
+        print(f"Plots saved to: {os.path.join(project_root, 'output', 'images')}")
+        return
     
     # Create and visualize the environment
     env = setup_routing_environment_4x4(num_rounds)
@@ -506,6 +530,16 @@ def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.
     output_dir = os.path.join(project_root, 'output', 'images')
     os.makedirs(output_dir, exist_ok=True)
     
+    # Save results for later analysis
+    if keep_memmap_files:
+        data_dir = os.path.join(project_root, 'output', 'data')
+        os.makedirs(data_dir, exist_ok=True)
+        timestamp = str(int(np.random.uniform(100, 999)))  # Simple identifier
+        save_path = os.path.join(data_dir, f'routing_4x4_results_r{num_rounds}_n{num_runs}_s{timestamp}.pkl')
+        with open(save_path, 'wb') as f:
+            pickle.dump(results, f)
+        print(f"Results saved to: {save_path}")
+    
     plot_all_routing_results(results, output_dir, gamma_values, file_prefix="routing_4x4", default_gamma=default_gamma)
     
     # Clean up temporary files
@@ -526,6 +560,8 @@ if __name__ == "__main__":
                        help='Keep memory-mapped files for later analysis')
     parser.add_argument('--default-gamma', type=float, default=0.01,
                        help='Default gamma value for the first comparison plot (default: 0.01)')
+    parser.add_argument('--load-data', type=str, default=None,
+                       help='Path to pickle file with saved results for plotting only')
     
     args, unknown = parser.parse_known_args()
     
@@ -534,6 +570,9 @@ if __name__ == "__main__":
     print(f"  Number of runs: {args.runs}")
     print(f"  Keep memory-mapped files: {args.keep_memmap}")
     print(f"  Default gamma for comparison: {args.default_gamma}")
+    if args.load_data:
+        print(f"  Load data from: {args.load_data}")
     print()
     
-    main(num_rounds=args.rounds, num_runs=args.runs, keep_memmap_files=args.keep_memmap, default_gamma=args.default_gamma) 
+    main(num_rounds=args.rounds, num_runs=args.runs, keep_memmap_files=args.keep_memmap, 
+         default_gamma=args.default_gamma, load_data=args.load_data) 

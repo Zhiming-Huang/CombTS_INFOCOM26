@@ -110,25 +110,125 @@ def plot_regret_comparison(results: Dict[str, Any],
                     linewidth=1.5, markersize=4, 
                     color=color, label=display_name)
     
-    # Set labels and title
-    plt.xlabel('$t$', fontsize=10)
+    # Set labels (no title)
+    plt.xlabel('t', fontsize=10)
     plt.ylabel('Regret', fontsize=10)
-    plt.title(title, fontsize=10)
+    
+    # Set y-axis to log scale
+    plt.yscale('log')
     
     # Set grid and legend
     plt.grid(True, alpha=0.3)
-    plt.legend(fontsize=10, loc='upper left')
+    # Set legend inside the plot in lower right
+    plt.legend(fontsize=8, loc='lower right', ncol=2)
     
-    # Use ScalarFormatter for better number formatting
-    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
-    plt.gca().ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    # Use ScalarFormatter for x-axis only (y-axis uses log scale)
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_scientific(True)
+    formatter.set_powerlimits((-1, 1))
+    plt.gca().xaxis.set_major_formatter(formatter)
     
-    # Save plot
+    # Set tick font sizes
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    
+    # Save plot without white margins
     plt.tight_layout()
-    plt.savefig(output_path, bbox_inches='tight', dpi=300)
+    plt.savefig(output_path, bbox_inches='tight', pad_inches=0, format='pdf', dpi=300)
     plt.close()
     
     print(f"Plot saved to: {output_path}")
+
+
+def plot_combined_gamma_comparison(results: Dict[str, Any],
+                                  algorithm_names: List[str],
+                                  gamma_values: List[float],
+                                  output_path: str,
+                                  figsize: tuple = (4, 3),  # Back to original size
+                                  use_latex: bool = True,
+                                  show_confidence_intervals: bool = True):
+    """
+    Plot combined gamma comparison for multiple algorithms.
+    
+    Args:
+        results: Results dictionary with algorithm data
+        algorithm_names: List of algorithm names (e.g., ['CTS-G', 'CL-SG'])
+        gamma_values: List of gamma values to plot
+        output_path: Path to save the plot
+        figsize: Figure size
+        use_latex: Whether to use LaTeX rendering
+        show_confidence_intervals: Whether to show confidence intervals
+    """
+    setup_plot_style(figsize, use_latex)
+    
+    num_rounds = results['num_rounds']
+    rounds = np.arange(1, num_rounds + 1)
+    
+    # Define colors and markers for different algorithms and gamma values
+    algorithm_colors = {'CTS-G': plt.cm.Blues, 'CL-SG': plt.cm.Reds}
+    
+    # Different markers for each gamma value to improve distinction
+    gamma_markers = ['o', 's', '^', 'D']  # circle, square, triangle, diamond
+    
+    # Ensure we have enough markers for all gamma values
+    if len(gamma_values) > len(gamma_markers):
+        gamma_markers.extend(['v', '<', '>', 'p', '*', 'h'])  # Add more if needed
+    
+    # Plot regret curves for each algorithm and gamma value
+    markevery = max(1, int(num_rounds / 10))  # Mark every T/10 points
+    
+    for alg_name in algorithm_names:
+        if alg_name in algorithm_colors:
+            colors = algorithm_colors[alg_name](np.linspace(0.4, 0.9, len(gamma_values)))
+        else:
+            colors = plt.cm.viridis(np.linspace(0, 1, len(gamma_values)))
+        
+        for i, gamma in enumerate(gamma_values):
+            # Use different marker for each gamma value
+            marker = gamma_markers[i % len(gamma_markers)]
+            
+            # Find the algorithm data for this gamma
+            alg_key = f"{alg_name.lower()}_gamma_{gamma}"
+            if alg_key in results:
+                alg_data = results[alg_key]
+                avg_regrets = alg_data['avg_cumulative_regrets']
+                
+                # Plot confidence interval if available and requested
+                if show_confidence_intervals and 'confidence_interval' in alg_data:
+                    ci_lower, ci_upper = alg_data['confidence_interval']
+                    plt.fill_between(rounds, ci_lower, ci_upper, alpha=0.1, color=colors[i])
+                
+                plt.plot(rounds, avg_regrets, color=colors[i], linewidth=1.5, 
+                        label=f'{alg_name} ($\\gamma={gamma}$)', marker=marker, 
+                        markevery=markevery, markersize=4, alpha=0.8)
+    
+    # Set legend with 2 columns inside the plot
+    plt.legend(fontsize=8, loc='lower right', ncol=2)
+    
+    # Set y-axis to log scale
+    plt.yscale('log')
+    
+    # Set scientific notation for x-axis only (y-axis uses log scale)
+    formatter = ScalarFormatter(useMathText=True)
+    formatter.set_scientific(True)
+    formatter.set_powerlimits((-1, 1))
+    plt.gca().xaxis.set_major_formatter(formatter)
+    
+    # Set tick font sizes
+    plt.xticks(fontsize=10)
+    plt.yticks(fontsize=10)
+    
+    # Grid and labels
+    plt.grid(True)
+    plt.xlabel('t', fontsize=10)
+    plt.ylabel('Regret', fontsize=10)
+    
+    # Save plot without title and with tight layout
+    plt.tight_layout()
+    plt.savefig(output_path, bbox_inches='tight', pad_inches=0, format='pdf', dpi=300)
+    plt.close()  # Close the figure to free memory
+    
+    print(f"Combined gamma comparison plot saved to: {output_path}")
 
 
 def plot_gamma_comparison(results: Dict[str, Any],
@@ -242,7 +342,7 @@ def plot_all_results(results: Dict[str, Any],
         results=results,
         algorithms=comparison_algorithms,
         output_path=f"{output_dir}/{file_prefix}_algorithm_comparison.pdf",
-        title="Algorithm Comparison"
+        title=""  # No title
     )
     
     # Plot 2 & 3: Gamma comparisons for each gamma algorithm
@@ -252,7 +352,16 @@ def plot_all_results(results: Dict[str, Any],
             algorithm_name=alg,
             gamma_values=gamma_values,
             output_path=f"{output_dir}/{file_prefix}_{alg.lower().replace('-', '')}_gamma_comparison.pdf",
-            title=f"{alg} Algorithm: Regret vs Rounds"
+            title=""  # No title
+        )
+    
+    # Plot 4: Combined gamma comparison for both algorithms
+    if len(gamma_algorithms) >= 2:
+        plot_combined_gamma_comparison(
+            results=results,
+            algorithm_names=gamma_algorithms,
+            gamma_values=gamma_values,
+            output_path=f"{output_dir}/{file_prefix}_combined_gamma_comparison.pdf"
         )
 
 

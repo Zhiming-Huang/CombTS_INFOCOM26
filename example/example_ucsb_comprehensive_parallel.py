@@ -35,6 +35,9 @@ import glob
 import multiprocessing as mp
 from functools import partial
 import time
+import pickle
+import json
+from pathlib import Path
 
 # Add project root to Python path
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -550,7 +553,155 @@ def analyze_ucsb_results(results: Dict[str, Any], default_gamma: float = 0.1):
                     print(f"{alg} vs {best_alg}: {improvement:.1f}% improvement")
 
 
-def main(num_rounds=10000, num_runs=5, default_gamma=0.1, fixed_source="10.1.1.102", fixed_destination="10.1.1.25", n_jobs=None, main_seed=42, trace_period="1143927049-1143953729", max_path_length=3, use_parallel=True):
+def save_simulation_results(results: Dict[str, Any], save_path: str, metadata: Dict[str, Any] = None):
+    """
+    Save simulation results to file with metadata.
+    
+    Args:
+        results: Results dictionary from simulation
+        save_path: Path to save the results
+        metadata: Additional metadata to save with results
+    """
+    # Create directory if it doesn't exist
+    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+    
+    # Prepare data for saving
+    save_data = {
+        'results': results,
+        'metadata': metadata or {},
+        'save_timestamp': time.time()
+    }
+    
+    # Convert numpy arrays to lists for JSON serialization if saving as JSON
+    if save_path.endswith('.json'):
+        serializable_results = {}
+        for key, value in results.items():
+            if isinstance(value, dict):
+                serializable_results[key] = {}
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, np.ndarray):
+                        serializable_results[key][subkey] = subvalue.tolist()
+                    elif isinstance(subvalue, tuple) and len(subvalue) == 2 and isinstance(subvalue[0], np.ndarray):
+                        # Handle confidence intervals
+                        serializable_results[key][subkey] = (subvalue[0].tolist(), subvalue[1].tolist())
+                    else:
+                        serializable_results[key][subkey] = subvalue
+            else:
+                serializable_results[key] = value
+        
+        save_data['results'] = serializable_results
+        
+        with open(save_path, 'w') as f:
+            json.dump(save_data, f, indent=2, default=str)
+    else:
+        # Save as pickle (preserves numpy arrays)
+        with open(save_path, 'wb') as f:
+            pickle.dump(save_data, f)
+    
+    print(f"Results saved to: {save_path}")
+
+
+def load_simulation_results(load_path: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    """
+    Load simulation results from file.
+    
+    Args:
+        load_path: Path to load the results from
+        
+    Returns:
+        Tuple of (results, metadata)
+    """
+    if not os.path.exists(load_path):
+        raise FileNotFoundError(f"Results file not found: {load_path}")
+    
+    if load_path.endswith('.json'):
+        with open(load_path, 'r') as f:
+            save_data = json.load(f)
+        
+        # Convert lists back to numpy arrays
+        results = save_data['results']
+        for key, value in results.items():
+            if isinstance(value, dict):
+                for subkey, subvalue in value.items():
+                    if isinstance(subvalue, list):
+                        results[key][subkey] = np.array(subvalue)
+                    elif isinstance(subvalue, list) and len(subvalue) == 2 and isinstance(subvalue[0], list):
+                        # Handle confidence intervals
+                        results[key][subkey] = (np.array(subvalue[0]), np.array(subvalue[1]))
+    else:
+        # Load from pickle
+        with open(load_path, 'rb') as f:
+            save_data = pickle.load(f)
+        results = save_data['results']
+    
+    metadata = save_data.get('metadata', {})
+    print(f"Results loaded from: {load_path}")
+    return results, metadata
+
+
+def generate_save_filename(metadata: Dict[str, Any]) -> str:
+    """
+    Generate a descriptive filename for saved results.
+    
+    Args:
+        metadata: Metadata containing simulation parameters
+        
+    Returns:
+        Generated filename
+    """
+    # Extract key parameters
+    num_rounds = metadata.get('num_rounds', 'unknown')
+    num_runs = metadata.get('num_runs', 'unknown')
+    main_seed = metadata.get('main_seed', 'unknown')
+    source = metadata.get('fixed_source', 'unknown').replace('.', '_')
+    dest = metadata.get('fixed_destination', 'unknown').replace('.', '_')
+    trace_period = metadata.get('trace_period', 'unknown')
+    
+    # Create filename
+    filename = f"ucsb_results_r{num_rounds}_n{num_runs}_s{main_seed}_{source}_to_{dest}_{trace_period}"
+    return filename
+
+
+def plot_from_saved_data(load_path: str, output_dir: str = None):
+    """
+    Load saved results and generate plots without running simulation.
+    
+    Args:
+        load_path: Path to saved results file
+        output_dir: Directory to save plots (default: output/images)
+    """
+    # Load results
+    results, metadata = load_simulation_results(load_path)
+    
+    # Set output directory
+    if output_dir is None:
+        output_dir = os.path.join(project_root, 'output', 'images')
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Extract parameters from metadata
+    default_gamma = metadata.get('default_gamma', 0.1)
+    gamma_values = metadata.get('gamma_values', [0.01, 0.1, 0.5, 1.0])
+    
+    # Analyze and print results
+    analyze_ucsb_results(results, default_gamma)
+    
+    # Generate plots
+    print(f"\nGenerating plots from saved data...")
+    plot_all_results(
+        results=results,
+        output_dir=output_dir,
+        base_algorithms=['CTSB', 'CombUCB', 'BG-CTS'],
+        gamma_algorithms=['CTS-G', 'CL-SG'],
+        gamma_values=gamma_values,
+        file_prefix="ucsb_comprehensive_parallel",
+        default_gamma=default_gamma
+    )
+    
+    print(f"Plots generated from saved data!")
+    print(f"Plots saved to: {output_dir}")
+
+
+def main(num_rounds=10000, num_runs=5, default_gamma=0.1, fixed_source="10.1.1.102", fixed_destination="10.1.1.25", n_jobs=None, main_seed=42, trace_period="1143927049-1143953729", max_path_length=3, use_parallel=True, save_data=None, load_data=None, plot_only=False):
     """
     Main function to run the UCSB comprehensive example with parallel execution.
     
@@ -558,14 +709,26 @@ def main(num_rounds=10000, num_runs=5, default_gamma=0.1, fixed_source="10.1.1.1
         num_rounds: Number of rounds per simulation
         num_runs: Number of independent runs
         default_gamma: Default gamma value for the first comparison plot
-        fixed_source: Fixed source node for reproducibility (default: 10.1.1.102)
-        fixed_destination: Fixed destination node for reproducibility (default: 10.1.1.25)
+        fixed_source: Fixed source node for reproducibility
+        fixed_destination: Fixed destination node for reproducibility
         n_jobs: Number of parallel jobs
         main_seed: Main random seed for reproducibility
-        trace_period: Specific trace period to use (default: Period 1)
-        max_path_length: Maximum path length in hops (default: 3)
-        use_parallel: Whether to use parallel processing (default: True, set to False for reproducibility)
+        trace_period: Specific trace period to use
+        max_path_length: Maximum path length in hops
+        use_parallel: Whether to use parallel processing
+        save_data: Path to save simulation data (None to skip saving)
+        load_data: Path to load saved simulation data (None to run new simulation)
+        plot_only: If True with load_data, only generate plots without printing analysis
     """
+    
+    # Handle load data and plot only mode
+    if load_data:
+        print("=" * 80)
+        print("Loading saved simulation data...")
+        print("=" * 80)
+        plot_from_saved_data(load_data)
+        return
+    
     print("UCSB Mesh Network Comprehensive Algorithm Comparison (Parallel)")
     print("=" * 80)
     print(f"Fixed node pair: {fixed_source} -> {fixed_destination}")
@@ -590,6 +753,30 @@ def main(num_rounds=10000, num_runs=5, default_gamma=0.1, fixed_source="10.1.1.1
         n_jobs=n_jobs,
         use_parallel=use_parallel
     )
+    
+    # Save data if requested
+    if save_data:
+        metadata = {
+            'num_rounds': num_rounds,
+            'num_runs': num_runs,
+            'default_gamma': default_gamma,
+            'fixed_source': fixed_source,
+            'fixed_destination': fixed_destination,
+            'main_seed': main_seed,
+            'trace_period': trace_period,
+            'max_path_length': max_path_length,
+            'gamma_values': gamma_values,
+            'use_parallel': use_parallel
+        }
+        
+        # Auto-generate filename if directory provided
+        if os.path.isdir(save_data):
+            filename = generate_save_filename(metadata)
+            save_path = os.path.join(save_data, filename + '.pkl')
+        else:
+            save_path = save_data
+            
+        save_simulation_results(results, save_path, metadata)
     
     # Analyze results
     analyze_ucsb_results(results, default_gamma)
@@ -640,6 +827,12 @@ if __name__ == "__main__":
                        help='Maximum path length in hops (default: 3)')
     parser.add_argument('--sequential', action='store_true',
                        help='Use sequential execution for full reproducibility (default: parallel)')
+    parser.add_argument('--save-data', type=str, default=None,
+                       help='Path to save simulation data (file path or directory for auto-naming)')
+    parser.add_argument('--load-data', type=str, default=None,
+                       help='Path to load saved simulation data and generate plots')
+    parser.add_argument('--plot-only', action='store_true',
+                       help='When used with --load-data, only generate plots without analysis')
     
     args, unknown = parser.parse_known_args()
     
@@ -669,9 +862,14 @@ if __name__ == "__main__":
         print(f"  Number of parallel jobs: {args.n_jobs if args.n_jobs else 'auto'}")
         print(f"  Main seed: {args.main_seed}")
         print(f"  Execution mode: {'Sequential' if args.sequential else 'Parallel'}")
+        if args.save_data:
+            print(f"  Save data to: {args.save_data}")
+        if args.load_data:
+            print(f"  Load data from: {args.load_data}")
         print()
         
         main(num_rounds=args.rounds, num_runs=args.runs, default_gamma=args.default_gamma,
              fixed_source=args.fixed_source, fixed_destination=args.fixed_destination,
              n_jobs=args.n_jobs, main_seed=args.main_seed, trace_period=args.trace_period, 
-             max_path_length=args.max_path_length, use_parallel=not args.sequential) 
+             max_path_length=args.max_path_length, use_parallel=not args.sequential,
+             save_data=args.save_data, load_data=args.load_data, plot_only=args.plot_only) 

@@ -1,0 +1,82 @@
+# Git and version control
+.git
+.gitignore
+*.git*
+
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Documentation and README files (keep only essential ones)
+docs/
+*.md
+!README.md
+!EXPERIMENT_GUIDE.md
+
+# Temporary and log files
+*.log
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Output directories (will be mounted as volumes)
+output/data/*
+output/images/*
+!output/data/.gitkeep
+!output/images/.gitkeep
+
+# Test files (will be mounted as volume)
+test/test_*.py
+
+# Notebooks (optional, can include if needed)
+notebooks/
+*.ipynb
+
+# System files
+.pytest_cache/
+.coverage
+.tox/
+.cache
+
+# Docker files (avoid recursion)
+Dockerfile*
+.dockerignore
+
+# Large data files that should be mounted instead
+data/ucsb/1*/neighbortable-*
+*.tar.gz 

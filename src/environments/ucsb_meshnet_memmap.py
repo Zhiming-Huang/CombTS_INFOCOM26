@@ -288,13 +288,16 @@ class UCSBMeshnetMemmapEnvironment:
             # Find all simple paths up to max_path_length hops
             all_paths = list(nx.all_simple_paths(G, self.source, self.destination, cutoff=self.max_path_length))
             
+            # Sort paths to ensure deterministic order
+            # Sort by path length first, then by lexicographic order of nodes
+            all_paths.sort(key=lambda path: (len(path), path))
+            
             # Filter paths to ensure they have at least 2 nodes (1 edge)
             valid_paths = [path for path in all_paths if len(path) >= 2]
             
             # Limit the number of paths to avoid computational explosion
             if len(valid_paths) > self.max_paths_per_algorithm:
-                # Prioritize shorter paths
-                valid_paths.sort(key=len)
+                # Take the first max_paths_per_algorithm paths (already sorted deterministically)
                 valid_paths = valid_paths[:self.max_paths_per_algorithm]
                 
         except nx.NetworkXNoPath:
