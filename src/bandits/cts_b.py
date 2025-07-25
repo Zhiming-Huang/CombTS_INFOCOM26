@@ -80,9 +80,11 @@ class CTSB:
         for arm in played_arms:
             if arm in rewards:
                 reward = rewards[arm]
-                if reward > 0:  # Success
+                # Treat the observed reward as the mean of a Bernoulli distribution
+                # Generate a random number and update based on whether it's > 0.5
+                if self.rng.random() < reward:  # Success with probability reward
                     self.alpha_posterior[arm] += 1
-                else:  # Failure
+                else:  # Failure with probability (1 - reward)
                     self.beta_posterior[arm] += 1
     
     def get_arm_statistics(self) -> Dict[str, Any]:

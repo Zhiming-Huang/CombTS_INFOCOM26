@@ -351,25 +351,35 @@ class QurinetEnvironmentEnhanced:
     
     def _generate_availability_matrix(self):
         """Pre-generate availability matrix for all rounds."""
-        print(f"Generating availability matrix: {self.num_rounds} rounds × {self.num_arms} arms")
+        print(f"Generating availability matrix...")
         self.availability_matrix = np.zeros((self.num_rounds, self.num_arms), dtype=bool)
         
         for round_num in range(self.num_rounds):
+            if round_num % 1000 == 0 or round_num == self.num_rounds - 1:
+                print(f"  Progress: {round_num}/{self.num_rounds} ({round_num/self.num_rounds*100:.1f}%)", end='\r')
+            
             for arm_id in range(self.num_arms):
                 edge = self.arm_to_edge[arm_id]
                 availability_rate = self.arm_availability_rates[arm_id]
                 self.availability_matrix[round_num, arm_id] = self.rng.random() < availability_rate
+        
+        print(f"\n  Availability matrix completed!")
     
     def _generate_rewards_matrix(self):
         """Pre-generate rewards matrix for all rounds."""
-        print(f"Generating rewards matrix: {self.num_rounds} rounds × {self.num_arms} arms")
+        print(f"Generating rewards matrix...")
         self.rewards_matrix = np.zeros((self.num_rounds, self.num_arms))
         
         for round_num in range(self.num_rounds):
+            if round_num % 1000 == 0 or round_num == self.num_rounds - 1:
+                print(f"  Progress: {round_num}/{self.num_rounds} ({round_num/self.num_rounds*100:.1f}%)", end='\r')
+            
             for arm_id in range(self.num_arms):
                 mean_reward = self.arm_means[arm_id]
                 # Use Bernoulli distribution for binary rewards
                 self.rewards_matrix[round_num, arm_id] = self.rng.random() < mean_reward
+        
+        print(f"\n  Rewards matrix completed!")
     
     def get_available_arms_for_round(self, round_num: int) -> Set[int]:
         """Get available arms for the current round."""
@@ -399,17 +409,45 @@ class QurinetEnvironmentEnhanced:
         
         # Find all simple paths from source to destination
         try:
-            all_paths = list(nx.all_simple_paths(subgraph, self.source, self.destination))
+            # Limit the number of paths to avoid exponential explosion
+            max_paths = 100  # Reduced limit for better performance
+            all_paths = []
+            
+            # Use shortest paths first
+            try:
+                shortest_paths = list(nx.all_shortest_paths(subgraph, self.source, self.destination))
+                all_paths.extend(shortest_paths)
+            except nx.NetworkXNoPath:
+                pass
+            
+            # If we need more paths, add some longer ones (but limit total)
+            if len(all_paths) < max_paths:
+                try:
+                    # Get some additional paths with limited length
+                    for path_length in range(3, min(6, self.max_combination_size + 1)):  # Reduced max length
+                        if len(all_paths) >= max_paths:
+                            break
+                        
+                        # Use simple path generator with length limit
+                        path_gen = nx.all_simple_paths(subgraph, self.source, self.destination, cutoff=path_length)
+                        for path in path_gen:
+                            if len(all_paths) >= max_paths:
+                                break
+                            if path not in all_paths:
+                                all_paths.append(path)
+                except Exception as e:
+                    pass
+            
         except nx.NetworkXNoPath:
             return []
         
         # Convert paths to arm combinations
         feasible_combinations = []
-        for path in all_paths:
+        for i, path in enumerate(all_paths):
             if len(path) - 1 <= self.max_combination_size:  # Path length = number of edges
                 path_arms = set()
-                for i in range(len(path) - 1):
-                    edge = (path[i], path[i + 1])
+                for j in range(len(path) - 1):
+                    edge = (path[j], path[j + 1])
                     if edge in self.edge_to_arm:
                         path_arms.add(self.edge_to_arm[edge])
                     elif (edge[1], edge[0]) in self.edge_to_arm:
@@ -417,7 +455,6 @@ class QurinetEnvironmentEnhanced:
                 
                 if path_arms and len(path_arms) <= self.max_combination_size:
                     feasible_combinations.append(path_arms)
-        
         return feasible_combinations
     
     def get_reward_for_round(self, combination: Set[int], round_num: int) -> Dict[int, float]:

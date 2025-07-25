@@ -10,7 +10,7 @@ if __name__ == "__main__":
         date="2-May",
         pre_generate_availability=True,
         pre_generate_rewards=True,
-        num_rounds=10  # 只测前10回合，便于输出
+        num_rounds=10  # Only test first 10 rounds for easier output
     )
     print(f"Source: {env.source}, Destination: {env.destination}")
     for round_num in range(env.num_rounds):

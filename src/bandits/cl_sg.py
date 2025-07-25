@@ -10,19 +10,27 @@ class CLSG:
         \bar{r}_{a, t} = \hat{r}_{a, n_{a, t}} + w_t * sqrt(gamma * ln t / (n_{a, t} + 1))
     Then select the feasible combination with the highest sum of reward estimates.
     """
-    def __init__(self, environment, gamma: float = 0.1, rng=None):
+    def __init__(self, environment, gamma: float = 0.01, rng=None, optimistic_init: bool = True):
         """
         Initialize the CL-SG algorithm.
         Args:
             environment: Environment instance
             gamma: Variance scaling parameter (default: 0.1)
+            rng: Random number generator
+            optimistic_init: Whether to use optimistic initialization for unexplored arms
         """
         self.environment = environment
         self.num_arms = environment.num_arms
         self.gamma = gamma
+        self.optimistic_init = optimistic_init
         self.pull_counts = np.zeros(self.num_arms)  # n_{a,t}
         self.total_rewards = np.zeros(self.num_arms)
         self.empirical_means = np.zeros(self.num_arms)
+        
+        # Optimistic initialization for unexplored arms
+        if optimistic_init:
+            self.empirical_means.fill(1.0)  # Optimistic initialization
+        
         self.rng = rng if rng is not None else np.random
 
     def select_combination(self, round_idx: int) -> Set[int]:
@@ -30,21 +38,41 @@ class CLSG:
         feasible_combinations = self.environment.get_feasible_combinations(available_arms)
         if not feasible_combinations:
             return set()
+        
         w_t = self.rng.normal(0, 1)
         reward_estimates = {}
+        
         for arm in available_arms:
             mean = self.empirical_means[arm]
-            variance = self.gamma * np.log(round_idx + 1) / (self.pull_counts[arm] + 1) if self.pull_counts[arm] > 0 else 1.0
-            variance = max(variance, 1e-6)
+            
+            # Improved variance calculation
+            if self.pull_counts[arm] > 0:
+                # For explored arms, use standard variance formula
+                variance = self.gamma * np.log(round_idx + 1) / (self.pull_counts[arm] + 1)
+                variance = max(variance, 1e-6)  # Ensure minimum variance
+            else:
+                # For unexplored arms, use a more reasonable variance
+                if self.optimistic_init:
+                    # If using optimistic initialization, use smaller variance for exploration
+                    variance = self.gamma * np.log(round_idx + 1) * 0.1
+                else:
+                    # Standard variance for unexplored arms
+                    variance = self.gamma * np.log(round_idx + 1)
+                variance = max(variance, 1e-6)
+            
             reward_estimates[arm] = mean + w_t * np.sqrt(variance)
+        
+        # Find best combination
         best_combination = None
         best_score = float('-inf')
+        
         for combination in feasible_combinations:
             if combination.issubset(available_arms):
                 score = sum(reward_estimates[arm] for arm in combination)
                 if score > best_score:
                     best_score = score
                     best_combination = combination
+        
         return best_combination if best_combination is not None else set()
 
     def update_posterior(self, played_arms: Set[int], rewards: Dict[int, float], round_idx: int):
@@ -68,7 +96,8 @@ class CLSG:
             'pull_counts': self.pull_counts.copy(),
             'total_rewards': self.total_rewards.copy(),
             'empirical_means': self.empirical_means.copy(),
-            'gamma': self.gamma
+            'gamma': self.gamma,
+            'optimistic_init': self.optimistic_init
         }
         return stats
 
@@ -77,5 +106,6 @@ class CLSG:
             'algorithm_name': 'CL-SG',
             'posterior_formula': r'\bar{r}_{a, t} = \hat{r}_{a, n_{a, t}} + w_t \sqrt{\frac{\gamma \ln t}{n_{a, t}+1}}',
             'gamma_parameter': self.gamma,
-            'description': 'CL-SG: Common-noise Gaussian TS with single noise per round.'
+            'optimistic_init': self.optimistic_init,
+            'description': 'CL-SG: Common-noise Gaussian TS with single noise per round and improved variance calculation.'
         } 

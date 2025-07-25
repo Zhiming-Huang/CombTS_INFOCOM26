@@ -28,7 +28,7 @@ if __name__ == "__main__":
         selected_comb = algo.select_combination(round_num)
         rewards = env.get_reward_for_round(selected_comb, round_num)
         mean_selected = sum(env.arm_means[arm_id] for arm_id in selected_comb)
-        # 新增调试输出
+        # Add debug output
         print(f"Round {round_num+1}:")
         print(f"  selected_comb (raw): {selected_comb}")
         print(f"  selected_comb length: {len(selected_comb)}")

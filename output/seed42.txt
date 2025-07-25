@@ -1,0 +1,76 @@
+Configuration:
+  Number of rounds: 5000
+  Number of runs: 5
+  Default gamma for comparison: 0.1
+  Fixed node pair: 10.1.1.100 -> 10.1.1.102
+  Trace period: 1144393236-1144450070
+  Max path length: 2 hops
+  Number of parallel jobs: auto
+  Main seed: 42
+
+UCSB Mesh Network Comprehensive Algorithm Comparison (Parallel)
+================================================================================
+Fixed node pair: 10.1.1.100 -> 10.1.1.102
+Trace period: 1144393236-1144450070
+Max path length: 2 hops
+
+Using specified trace period: 1144393236-1144450070
+Available trace directories:
+  1143927049-1143953729: 445 files
+  1144373273-1144393193: 332 files
+  1144393236-1144450070: 948 files
+Selected trace directory: 1144393236-1144450070 (948 files)
+
+Found 948 neighbortable files in 1144393236-1144450070
+Calculated routes_per_minute: 15
+Environment will have 14220 rounds (using first 5000 for simulation)
+
+Using fixed node pair: 10.1.1.100 -> 10.1.1.102
+
+Running UCSB simulation with parallel execution...
+Running UCSB simulation with 5000 rounds, 5 runs (Parallel)
+Gamma values: [0.01, 0.1, 0.5, 1.0]
+Using 8 parallel processes
+Creating shared environment instance...
+Total algorithms: 11
+Pre-generating all algorithm generators...
+Generated 11 algorithm configurations
+Starting parallel execution of 11 algorithms...
+Parallel execution completed in 55.77 seconds
+
+UCSB Mesh Network Simulation Results:
+================================================================================
+
+Base Algorithms:
+----------------------------------------
+CTSB:
+  Final regret: 37.47 ± 44.40
+  95% CI: [-17.66, 92.60]
+CombUCB:
+  Final regret: 190.33 ± 0.00
+  95% CI: [nan, nan]
+BG-CTS:
+  Final regret: 255.65 ± 3.90
+  95% CI: [250.81, 260.49]
+
+Gamma Algorithms (γ=0.1):
+----------------------------------------
+CTS-G (γ=0.1):
+  Final regret: 222.60 ± 3.27
+  95% CI: [218.54, 226.66]
+CL-SG (γ=0.1):
+  Final regret: 72.59 ± 18.78
+  95% CI: [49.28, 95.90]
+
+Algorithm Comparison:
+----------------------------------------
+CombUCB vs CTSB: 80.3% improvement
+BG-CTS vs CTSB: 85.3% improvement
+
+Generating plots...
+Plot saved to: /Users/zhiminghuang/Documents/GitHub/CombTS_INFOCOM26/output/images/ucsb_comprehensive_parallel_algorithm_comparison.pdf
+CTS-G gamma comparison plot saved to: /Users/zhiminghuang/Documents/GitHub/CombTS_INFOCOM26/output/images/ucsb_comprehensive_parallel_ctsg_gamma_comparison.pdf
+CL-SG gamma comparison plot saved to: /Users/zhiminghuang/Documents/GitHub/CombTS_INFOCOM26/output/images/ucsb_comprehensive_parallel_clsg_gamma_comparison.pdf
+
+UCSB comprehensive example completed!
+Plots saved to: /Users/zhiminghuang/Documents/GitHub/CombTS_INFOCOM26/output/images

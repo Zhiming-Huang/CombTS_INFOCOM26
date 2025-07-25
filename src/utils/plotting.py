@@ -55,6 +55,7 @@ def plot_regret_comparison(results: Dict[str, Any],
         algorithms: List of algorithm names to plot (keys in results)
         output_path: Path to save the plot
         title: Plot title
+        y_label: Y-axis label
         figsize: Figure size
         use_latex: Whether to use LaTeX rendering
         show_confidence_intervals: Whether to show confidence intervals
@@ -98,41 +99,36 @@ def plot_regret_comparison(results: Dict[str, Any],
                 display_names = {
                     'CTSB': 'CTS-B',
                     'CombUCB': 'CombUCB',
+                    'BG-CTS': 'BG-CTS',
                     'CTS-G': 'CTS-G',
-                    'CL-SG': 'CL-SG',
-                    'BG-CTS': 'BG-CTS'
+                    'CL-SG': 'CL-SG'
                 }
                 display_name = display_names.get(alg, alg)
             
-            plt.plot(rounds, avg_regrets, label=display_name, marker=marker, 
-                    markevery=markevery, linewidth=1.5, color=color)
+            plt.plot(rounds, avg_regrets, 
+                    marker=marker, markevery=markevery, 
+                    linewidth=1.5, markersize=4, 
+                    color=color, label=display_name)
     
-    # Set legend
-    plt.legend(fontsize=10)
-    
-    # Create a ScalarFormatter object for scientific notation
-    formatter = ScalarFormatter(useMathText=True)
-    formatter.set_scientific(True)
-    formatter.set_powerlimits((-1, 1))
-    
-    # Apply formatter to axes
-    plt.gca().yaxis.set_major_formatter(formatter)
-    plt.gca().xaxis.set_major_formatter(formatter)
-    
-    # Set tick font sizes
-    plt.xticks(fontsize=10)
-    plt.yticks(fontsize=10)
-    
-    # Grid and labels
-    plt.grid(True)
-    plt.xlabel('t', fontsize=10)
+    # Set labels and title
+    plt.xlabel('$t$', fontsize=10)
     plt.ylabel('Regret', fontsize=10)
+    plt.title(title, fontsize=10)
     
-    # Save plot without title and with tight layout
-    plt.savefig(output_path, bbox_inches='tight', pad_inches=0, format='pdf', dpi=300)
-    plt.close()  # Close the figure to free memory
+    # Set grid and legend
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10, loc='upper left')
     
-    print(f"Regret comparison plot saved to: {output_path}")
+    # Use ScalarFormatter for better number formatting
+    plt.gca().yaxis.set_major_formatter(ScalarFormatter(useMathText=True))
+    plt.gca().ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    
+    # Save plot
+    plt.tight_layout()
+    plt.savefig(output_path, bbox_inches='tight', dpi=300)
+    plt.close()
+    
+    print(f"Plot saved to: {output_path}")
 
 
 def plot_gamma_comparison(results: Dict[str, Any],
@@ -308,4 +304,96 @@ def plot_all_routing_results(results: Dict[str, Any],
         gamma_values=gamma_values,
         file_prefix=file_prefix,
         default_gamma=default_gamma
+    ) 
+
+
+def calculate_time_expected_ett(results: Dict[str, Any], env_config: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Calculate time-expected ETT by mapping cumulative reward back to cumulative ETT.
+    
+    Args:
+        results: Results dictionary with algorithm data
+        env_config: Environment configuration containing ETT min/max values
+        
+    Returns:
+        Dictionary with time-expected ETT data for each algorithm
+    """
+    ett_results = {}
+    
+    # Get ETT normalization parameters from environment config
+    ett_min = env_config.get('ett_min', 0.0)
+    ett_max = env_config.get('ett_max', 1.0)
+    
+    num_rounds = results['num_rounds']
+    
+    for alg_name, alg_data in results.items():
+        if alg_name in ['num_rounds', 'num_runs', 'gamma_values', 'confidence_level']:
+            continue
+            
+        # Get cumulative rewards
+        avg_cumulative_rewards = alg_data['avg_cumulative_regrets']  # This is actually cumulative reward
+        
+        # Map reward back to ETT: reward = 1 - (ett - ett_min) / (ett_max - ett_min)
+        # So: ett = ett_min + (1 - reward) * (ett_max - ett_min)
+        cumulative_ett = ett_min + (1 - avg_cumulative_rewards / num_rounds) * (ett_max - ett_min)
+        
+        # Calculate time-expected ETT (average ETT per round)
+        time_expected_ett = cumulative_ett / np.arange(1, num_rounds + 1)
+        
+        ett_results[alg_name] = {
+            'time_expected_ett': time_expected_ett,
+            'cumulative_ett': cumulative_ett,
+            'final_time_expected_ett': time_expected_ett[-1],
+            'final_cumulative_ett': cumulative_ett[-1]
+        }
+    
+    return ett_results
+
+
+def plot_time_expected_ett(results: Dict[str, Any],
+                          env_config: Dict[str, Any],
+                          algorithms: List[str],
+                          output_path: str,
+                          title: str = "Time-Expected ETT Comparison",
+                          figsize: tuple = (4, 3),
+                          use_latex: bool = True,
+                          show_confidence_intervals: bool = False):
+    """
+    Plot time-expected ETT comparison for algorithms.
+    
+    Args:
+        results: Results dictionary with algorithm data
+        env_config: Environment configuration
+        algorithms: List of algorithm names to plot
+        output_path: Path to save the plot
+        title: Plot title
+        figsize: Figure size
+        use_latex: Whether to use LaTeX rendering
+        show_confidence_intervals: Whether to show confidence intervals (not used for ETT)
+    """
+    # Calculate time-expected ETT
+    ett_results = calculate_time_expected_ett(results, env_config)
+    
+    # Create a new results dictionary for plotting
+    ett_plot_results = {
+        'num_rounds': results['num_rounds'],
+        'num_runs': results['num_runs']
+    }
+    
+    # Add time-expected ETT data
+    for alg_name in algorithms:
+        if alg_name in ett_results:
+            ett_plot_results[alg_name] = {
+                'avg_cumulative_regrets': ett_results[alg_name]['time_expected_ett']
+            }
+    
+    # Plot using the unified plotting function
+    plot_regret_comparison(
+        results=ett_plot_results,
+        algorithms=algorithms,
+        output_path=output_path,
+        title=title,
+        figsize=figsize,
+        use_latex=use_latex,
+        show_confidence_intervals=show_confidence_intervals
     ) 
