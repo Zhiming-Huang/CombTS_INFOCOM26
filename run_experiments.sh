@@ -53,7 +53,7 @@ if [ "$MODE" = "full" ]; then
     ROUTING_ROUNDS=10000
     ROUTING_RUNS=5
     UCSB_ROUNDS=10000
-    UCSB_RUNS=10  # Changed to 10 runs
+    UCSB_RUNS=100  # Changed to 100 runs for better statistics
 else
     echo -e "${YELLOW}Running QUICK experiments (reduced settings for testing)${NC}"
     ROUTING_ROUNDS=1000

@@ -105,7 +105,7 @@ def main():
     if args.mode == 'full':
         print_colored("Running FULL experiments (paper settings)", Colors.YELLOW)
         routing_rounds, routing_runs = 10000, 5
-        ucsb_rounds, ucsb_runs = 10000, 10  # Changed to 10 runs
+        ucsb_rounds, ucsb_runs = 10000, 100  # Changed to 100 runs for better statistics
     else:
         print_colored("Running QUICK experiments (reduced settings for testing)", Colors.YELLOW)
         routing_rounds, routing_runs = 1000, 3
