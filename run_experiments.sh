@@ -31,6 +31,22 @@ NC='\033[0m' # No Color
 
 # Configuration
 MODE=${1:-quick}  # Default to quick mode
+PLOT_ONLY=false
+
+# Check for --plot-only flag
+for arg in "$@"; do
+    case $arg in
+        --plot-only)
+            PLOT_ONLY=true
+            shift
+            ;;
+        quick|full)
+            MODE=$arg
+            shift
+            ;;
+    esac
+done
+
 PROJECT_ROOT=$(pwd)
 OUTPUT_DIR="$PROJECT_ROOT/output"
 DATA_DIR="$OUTPUT_DIR/data" 
@@ -45,6 +61,65 @@ echo -e "${BLUE}================================================================
 echo -e "Mode: ${YELLOW}$MODE${NC}"
 echo -e "Project root: ${YELLOW}$PROJECT_ROOT${NC}"
 echo -e "Output directory: ${YELLOW}$OUTPUT_DIR${NC}"
+
+# Function to generate plots from saved data
+plot_from_saved_data() {
+    echo -e "${BLUE}Searching for saved data files...${NC}"
+    
+    # Find the latest routing and UCSB data files
+    LATEST_ROUTING=$(find "$DATA_DIR" -name "routing_4x4_results_*.pkl" -type f -exec ls -t {} + 2>/dev/null | head -1)
+    LATEST_UCSB=$(find "$DATA_DIR" -name "ucsb_results_*.pkl" -type f -exec ls -t {} + 2>/dev/null | head -1)
+    
+    if [ -z "$LATEST_ROUTING" ] && [ -z "$LATEST_UCSB" ]; then
+        echo -e "${YELLOW}No data files found in $DATA_DIR${NC}"
+        return 1
+    fi
+    
+    PLOTS_GENERATED=false
+    
+    # Generate routing plots if data exists
+    if [ -n "$LATEST_ROUTING" ]; then
+        echo "Found routing 4x4 data: $(basename "$LATEST_ROUTING")"
+        echo -e "${BLUE}Generating routing 4x4 plots...${NC}"
+        
+        if python example/example_routing_4x4_memmap.py --load-data "$LATEST_ROUTING"; then
+            echo -e "${GREEN}✓ Routing 4x4 plots generated successfully${NC}"
+            PLOTS_GENERATED=true
+        else
+            echo -e "${RED}✗ Routing 4x4 plot generation failed${NC}"
+        fi
+    fi
+    
+    # Generate UCSB plots if data exists
+    if [ -n "$LATEST_UCSB" ]; then
+        echo "Found UCSB data: $(basename "$LATEST_UCSB")"
+        echo -e "${BLUE}Generating UCSB plots...${NC}"
+        
+        if python example/example_ucsb_comprehensive_parallel.py --load-data "$LATEST_UCSB"; then
+            echo -e "${GREEN}✓ UCSB plots generated successfully${NC}"
+            PLOTS_GENERATED=true
+        else
+            echo -e "${RED}✗ UCSB plot generation failed${NC}"
+        fi
+    fi
+    
+    if [ "$PLOTS_GENERATED" = true ]; then
+        echo ""
+        echo -e "${GREEN}🎉 Plot generation completed!${NC}"
+        echo -e "📊 Plots saved to: $IMAGES_DIR"
+    else
+        echo -e "${YELLOW}No plots were generated.${NC}"
+    fi
+}
+
+# Handle plot-only mode
+if [ "$PLOT_ONLY" = true ]; then
+    echo -e "${BLUE}PLOT-ONLY MODE: Generating plots from existing saved data${NC}"
+    echo ""
+    plot_from_saved_data
+    exit 0
+fi
+
 echo ""
 
 # Set experiment parameters based on mode
@@ -85,7 +160,7 @@ python example/example_routing_4x4_memmap.py \
     --rounds $ROUTING_ROUNDS \
     --runs $ROUTING_RUNS \
     --keep-memmap \
-    --default-gamma 0.01
+    --default-gamma 0.1
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ Routing 4x4 experiment completed successfully${NC}"

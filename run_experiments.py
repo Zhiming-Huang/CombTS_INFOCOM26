@@ -74,6 +74,58 @@ def check_file_exists(filepath, description):
         print_colored(f"    ✗ {description} (missing)", Colors.RED)
         return False
 
+def plot_from_saved_data(data_dir):
+    """Generate plots from existing saved data files."""
+    print_colored("Searching for saved data files...", Colors.BLUE)
+    
+    # Find routing 4x4 data files
+    routing_files = list(data_dir.glob("routing_4x4_results_*.pkl"))
+    ucsb_files = list(data_dir.glob("ucsb_results_*.pkl"))
+    
+    if not routing_files and not ucsb_files:
+        print_colored("No data files found in the data directory.", Colors.YELLOW)
+        print(f"Searched in: {data_dir}")
+        return
+    
+    plots_generated = False
+    
+    # Process routing files
+    if routing_files:
+        latest_routing = max(routing_files, key=lambda f: f.stat().st_mtime)
+        print(f"Found routing 4x4 data: {latest_routing.name}")
+        print_colored("Generating routing 4x4 plots...", Colors.BLUE)
+        
+        routing_cmd = (f"python example/example_routing_4x4_memmap.py "
+                      f"--load-data \"{latest_routing}\"")
+        
+        if run_command(routing_cmd, "routing 4x4 plot generation"):
+            print_colored("✓ Routing 4x4 plots generated successfully", Colors.GREEN)
+            plots_generated = True
+        else:
+            print_colored("✗ Routing 4x4 plot generation failed", Colors.RED)
+    
+    # Process UCSB files
+    if ucsb_files:
+        latest_ucsb = max(ucsb_files, key=lambda f: f.stat().st_mtime)
+        print(f"Found UCSB data: {latest_ucsb.name}")
+        print_colored("Generating UCSB plots...", Colors.BLUE)
+        
+        ucsb_cmd = (f"python example/example_ucsb_comprehensive_parallel.py "
+                   f"--load-data \"{latest_ucsb}\"")
+        
+        if run_command(ucsb_cmd, "UCSB plot generation"):
+            print_colored("✓ UCSB plots generated successfully", Colors.GREEN)
+            plots_generated = True
+        else:
+            print_colored("✗ UCSB plot generation failed", Colors.RED)
+    
+    if plots_generated:
+        print()
+        print_colored("🎉 Plot generation completed!", Colors.GREEN)
+        print(f"📊 Plots saved to: {data_dir.parent / 'images'}")
+    else:
+        print_colored("No plots were generated.", Colors.YELLOW)
+
 def main():
     """Main experiment runner."""
     
@@ -82,6 +134,8 @@ def main():
     parser.add_argument('mode', nargs='?', default='quick', 
                        choices=['quick', 'full'],
                        help='Experiment mode: quick (fast testing) or full (paper settings)')
+    parser.add_argument('--plot-only', action='store_true',
+                       help='Only generate plots from existing saved data (skip simulations)')
     args = parser.parse_args()
     
     # Setup paths
@@ -99,6 +153,13 @@ def main():
     print_colored(f"Mode: {args.mode}", Colors.YELLOW)
     print_colored(f"Project root: {project_root}", Colors.YELLOW)
     print_colored(f"Output directory: {output_dir}", Colors.YELLOW)
+    
+    if args.plot_only:
+        print_colored("PLOT-ONLY MODE: Generating plots from existing saved data", Colors.BLUE)
+        print()
+        plot_from_saved_data(data_dir)
+        return
+    
     print()
     
     # Set experiment parameters based on mode
@@ -131,7 +192,7 @@ def main():
                   f"--rounds {routing_rounds} "
                   f"--runs {routing_runs} "
                   f"--keep-memmap "
-                  f"--default-gamma 0.01")
+                  f"--default-gamma 0.1")
     
     if not run_command(routing_cmd, "routing 4x4 simulation"):
         print_colored("Routing experiment failed. Exiting...", Colors.RED)

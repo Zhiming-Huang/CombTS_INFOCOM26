@@ -356,7 +356,7 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
     return results
 
 
-def analyze_routing_results(results: Dict[str, Any], default_gamma=0.01):
+def analyze_routing_results(results: Dict[str, Any], default_gamma=0.1):
     """
     Analyze routing simulation results.
     
@@ -447,7 +447,7 @@ def cleanup_temp_files(results: Dict[str, Any], keep_files: bool = False):
             pass  # File might not exist or already be removed
 
 
-def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.01, load_data=None):
+def main(num_rounds=10000, num_runs=5, keep_memmap_files=False, default_gamma=0.1, load_data=None):
     """
     Main function to run the 4x4 routing environment example.
     
@@ -557,11 +557,11 @@ if __name__ == "__main__":
     parser.add_argument('--runs', type=int, default=5,
                        help='Number of independent runs (default: 5)')
     parser.add_argument('--keep-memmap', action='store_true',
-                       help='Keep memory-mapped files for later analysis')
-    parser.add_argument('--default-gamma', type=float, default=0.01,
-                       help='Default gamma value for the first comparison plot (default: 0.01)')
+                        help='Keep memory-mapped files for later analysis')
+    parser.add_argument('--default-gamma', type=float, default=0.1,
+                        help='Default gamma value for the first comparison plot (default: 0.1)')
     parser.add_argument('--load-data', type=str, default=None,
-                       help='Path to pickle file with saved results for plotting only')
+                        help='Path to pickle file with saved results for plotting only')
     
     args, unknown = parser.parse_known_args()
     
