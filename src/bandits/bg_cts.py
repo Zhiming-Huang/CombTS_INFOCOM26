@@ -3,7 +3,7 @@ from typing import List, Set, Dict, Any
 
 class BGCTS:
     """
-    Batch Gaussian Combinatorial Thompson Sampling (BG-CTS) for sleeping arms.
+    Boosted Gaussian-Combinatorial Thompson Sampling (BG-CTS) for sleeping arms.
     Adapted for this project: supports available arms, feasible combinations, and project environment.
     """
     def __init__(self, environment, m=None, sigma=1.0, sigma_prior=1.0, lamda=0.0, rnd_generator=None):
@@ -74,5 +74,5 @@ class BGCTS:
     def get_algorithm_info(self) -> Dict[str, Any]:
         return {
             'algorithm_name': 'BG-CTS',
-            'description': 'Batch Gaussian Combinatorial Thompson Sampling (BG-CTS)'
+            'description': 'Boosted Gaussian-Combinatorial Thompson Sampling (BG-CTS)'
         } 
