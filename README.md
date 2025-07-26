@@ -98,11 +98,11 @@ docker run --rm \
 
 ### Algorithms Tested
 
-- **CTS-B**: Combinatorial Thompson Sampling - Beta
+- **CTS-B**: Combinatorial Thompson Sampling with Beta Prior
 - **CombUCB**: Combinatorial Upper Confidence Bound
 - **BG-CTS**: Beta-Gamma Combinatorial Thompson Sampling  
-- **CTS-G**: Combinatorial Thompson Sampling - Gamma (γ ∈ {0.01, 0.1, 0.5, 1.0})
-- **CL-SG**: Collaborative Learning with Shared Gamma (γ ∈ {0.01, 0.1, 0.5, 1.0})
+- **CTS-G**: Combinatorial Thompson Sampling with Gaussian Priors (γ ∈ {0.01, 0.1, 0.5, 1.0})
+- **CL-SG**: Combinatorial Learning with Single Gaussian (γ ∈ {0.01, 0.1, 0.5, 1.0})
 
 ### Generated Results
 

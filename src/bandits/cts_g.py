@@ -4,9 +4,9 @@ from typing import List, Set, Dict, Any
 
 class CTSG:
     """
-    Combinatorial Thompson Sampling with Gaussian posterior algorithm for sleeping arms.
+    Combinatorial Thompson Sampling with Gaussian Priors algorithm for sleeping arms.
     
-    This class implements a combinatorial bandit algorithm using Gaussian posterior
+    This class implements a combinatorial bandit algorithm using Gaussian priors
     that can handle sleeping arms (arms that may not be available at every round).
     
     The algorithm samples from \mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1})
@@ -35,7 +35,7 @@ class CTSG:
     
     def select_combination(self, round_idx: int) -> Set[int]:
         """
-        Select a feasible combination based on Gaussian posterior samples.
+        Select a feasible combination based on Gaussian prior samples.
         
         Returns:
             Selected feasible combination (set of arms)
@@ -67,7 +67,7 @@ class CTSG:
     
     def _compute_gaussian_sample(self, arm: int, round_idx: int) -> float:
         """
-        Compute a sample from the Gaussian posterior for a given arm.
+        Compute a sample from the Gaussian prior for a given arm.
         
         Args:
             arm: Arm index
@@ -83,7 +83,7 @@ class CTSG:
         variance = self.gamma * np.log(round_idx + 1) / (self.pull_counts[arm] + 1)
         
         
-        # Sample from Gaussian posterior: \mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1})
+        # Sample from Gaussian prior: \mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1})
         sample = self.rng.normal(empirical_mean, np.sqrt(variance))
         
         return sample
@@ -146,5 +146,5 @@ class CTSG:
             'algorithm_name': 'CTSG',
             'posterior_formula': r'\mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1})',
             'gamma_parameter': self.gamma,
-            'description': 'Combinatorial Thompson Sampling with Gaussian posterior and sleeping arms support'
+            'description': 'Combinatorial Thompson Sampling with Gaussian Priors and sleeping arms support'
         } 

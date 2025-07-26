@@ -5,7 +5,7 @@ import random
 
 class CTSB:
     """
-    Combinatorial Thompson Sampling algorithm for sleeping arms.
+    Combinatorial Thompson Sampling with Beta Prior algorithm for sleeping arms.
     
     This class implements a combinatorial bandit algorithm that can handle
     sleeping arms (arms that may not be available at every round).

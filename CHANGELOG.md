@@ -38,8 +38,8 @@
 ## [1.11.0] - 2024-01-20
 
 ### Added
-- **CTS-G Algorithm**: Implemented Combinatorial Thompson Sampling with Gaussian posterior
-- **Gaussian Posterior**: Uses \mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1}) distribution
+- **CTS-G Algorithm**: Implemented Combinatorial Thompson Sampling with Gaussian Priors
+- **Gaussian Priors**: Uses \mathcal{N}(\hat{r}_{a, n_{a, t}}, \frac{\gamma \ln t}{n_{a, t}+1}) distribution
 - **Tunable Parameter**: Gamma parameter for variance scaling control
 
 ### New Files
@@ -61,10 +61,10 @@ Where:
 - \gamma is the tunable parameter for variance scaling
 
 #### Key Features
-- **Gaussian Posterior**: Uses normal distribution instead of Beta distribution
+- **Gaussian Priors**: Uses normal distribution instead of Beta distribution
 - **Tunable Variance**: Gamma parameter controls exploration-exploitation balance
 - **Sleeping Arms Support**: Handles arms that may not be available at every round
-- **Combinatorial Selection**: Selects feasible combinations with highest posterior sum
+- **Combinatorial Selection**: Selects feasible combinations with highest prior sum
 
 #### Comparison Results
 - **CTSB final regret**: 23.68 ± 2.51
@@ -76,7 +76,7 @@ Where:
 
 #### CTSG Class Methods
 - `__init__(environment, gamma)`: Initialize with environment and gamma parameter
-- `select_combination()`: Select combination based on Gaussian posterior samples
+- `select_combination()`: Select combination based on Gaussian prior samples
 - `_compute_gaussian_sample(arm)`: Compute Gaussian sample for specific arm
 - `update_posterior(played_arms, rewards)`: Update empirical means
 - `get_arm_statistics()`: Get detailed arm statistics
@@ -84,7 +84,7 @@ Where:
 
 #### Gaussian Sampling
 ```python
-# Sample from Gaussian posterior
+# Sample from Gaussian prior
 empirical_mean = self.empirical_means[arm]
 variance = self.gamma * math.log(self.current_round + 1) / (self.pull_counts[arm] + 1)
 sample = np.random.normal(empirical_mean, math.sqrt(variance))
@@ -102,9 +102,9 @@ sample = np.random.normal(empirical_mean, math.sqrt(variance))
 - **Extensible**: Easy to add more Thompson Sampling variants
 
 ### Current Algorithm Suite
-1. **CTSB**: Thompson Sampling with Beta posterior
+1. **CTSB**: Thompson Sampling with Beta Prior
 2. **CombUCB**: Upper Confidence Bound approach
-3. **CTS-G**: Thompson Sampling with Gaussian posterior
+3. **CTS-G**: Thompson Sampling with Gaussian Priors
 
 ## [1.10.0] - 2024-01-20
 
@@ -329,124 +329,3 @@ output/
 ### Files Deleted
 - `rewards_distribution.png` - Rewards distribution plot
 - `new_rng_quality.png` - RNG quality analysis plot  
-- `rewards_optimization_example.png` - Rewards optimization example plot
-
-### Benefits
-- **Clean Root Directory**: No clutter from generated images
-- **Organized Output**: All plots are now properly stored in `output/` directory
-- **Professional Structure**: Root directory contains only source code and documentation
-
-### Note
-All future plots will be automatically saved to the `output/` directory by the test scripts.
-
-## [1.5.0] - 2024-01-20
-
-### Changed
-- **Test Directory Simplification**: Removed all redundant test files, keeping only two core memory-mapped versions
-- **Independent Test Files**: Made both test files completely self-contained with embedded utility functions
-- **Minimal Dependencies**: Removed dependency on test_utils.py and other utility files
-
-### Files Deleted
-- `test/test_simple_environment.py` - Original test file (replaced by memory-mapped versions)
-- `test/test_utils.py` - Utility functions (embedded in test files)
-- `test/jupyter_test_simple_environment.py` - Jupyter test file
-- `test/jupyter_setup.py` - Jupyter setup file
-- `test/README_Jupyter.md` - Jupyter documentation
-
-### Files Modified
-- `test/test_simple_environment_memmap_cumulative_only.py` - Made independent with embedded utilities
-- `test/test_simple_environment_memmap_cumulative_with_ci.py` - Made independent with embedded utilities
-
-### Final Test Directory Structure
-```
-test/
-├── test_simple_environment_memmap_cumulative_only.py      # Memory-mapped, no CI
-└── test_simple_environment_memmap_cumulative_with_ci.py   # Memory-mapped, with CI
-```
-
-### Technical Details
-
-#### Independent Test Files
-Both test files now include:
-- Embedded utility functions (setup_test_environment, check_imports, etc.)
-- Self-contained Python path management
-- No external dependencies beyond core libraries
-
-#### Usage
-```bash
-# Without confidence intervals
-python test/test_simple_environment_memmap_cumulative_only.py
-
-# With confidence intervals
-python test/test_simple_environment_memmap_cumulative_with_ci.py
-```
-
-### Benefits
-- **Simplified Structure**: Only 2 test files instead of 6
-- **Independent Operation**: Each file can run without external dependencies
-- **Focused Functionality**: Clear separation between with/without confidence intervals
-- **Easy Maintenance**: Minimal codebase with maximum functionality
-
-## [1.4.0] - 2024-01-20
-
-### Added
-- **Pre-generated rewards optimization**: New `pre_generate_rewards` parameter for performance improvement
-- **Memory-mapped rewards**: Support for large-scale reward matrix storage with memory mapping
-- **New NumPy RNG**: Migrated from deprecated `np.random` to modern `np.random.default_rng()`
-- **Synchronization fix**: Eliminated counter synchronization issues between environment and test programs
-- **Direct matrix access**: Explicit round indexing for consistent and deterministic results
-- **Efficient progress tracking**: Configurable progress levels with minimal performance overhead
-
-### Changed
-- **Random number generation**: Updated to use `np.random.default_rng()` with PCG64 algorithm
-- **Reward generation**: Added pre-generated rewards matrix for 2-4x performance improvement
-- **Environment interface**: Deprecated counter-based methods in favor of direct matrix access
-- **Test synchronization**: Fixed environment-test program round synchronization issues
-- **Regret calculation**: Fixed to compare expected rewards with expected rewards (not instantaneous)
-- **Algorithm Renaming**: Renamed `CombTS` to `CTS-B` (Combinatorial Thompson Sampling - Bandit)
-- **File Renaming**: `src/bandits/comb_ts.py` → `src/bandits/cts_b.py`
-- **Class Renaming**: `CombTS` class → `CTSB` class
-- **Import Updates**: Updated all imports from `comb_ts` to `cts_b`
-- **Documentation Updates**: Updated all references in README, examples, and documentation
-
-### Files Renamed
-- `src/bandits/comb_ts.py` → `src/bandits/cts_b.py`
-
-### Files Deleted
-- `test/test_simple_environment.py` - Removed redundant test file (replaced by memory-mapped versions)
-
-### Files Modified
-- `src/bandits/__init__.py` - Updated imports and exports
-- `src/simulation.py` - Updated algorithm references
-- `src/environments/simple_environment.py` - Updated documentation
-- `test/test_simple_environment_memmap_cumulative_only.py` - Updated imports and labels
-- `test/test_simple_environment_memmap_cumulative_with_ci.py` - Updated imports and labels
-- `test/test_utils.py` - Updated imports
-- `test/jupyter_test_simple_environment.py` - Updated imports and labels
-- `test/jupyter_setup.py` - Updated imports and documentation
-- `example/example_simple.py` - Updated imports and documentation
-- `example/example_matrix_optimization.py` - Updated imports
-- `example/example_memmap_optimization.py` - Updated imports
-- `example/README.md` - Updated all references
-- `docs/progress_tracking_guide.md` - Updated framework references
-- `docs/rewards_optimization_guide.md` - Updated algorithm references
-- `README.md` - Updated all algorithm references
-- `setup.py` - Updated package name and entry points
-- `CHANGELOG.md` - Updated all references
-
-### Technical Details
-
-#### Renaming Summary
-```python
-# Old naming
-from src.bandits.comb_ts import CombTS
-algorithm = CombTS(environment=env, alpha=1.0, beta=1.0)
-
-# New naming
-from src.bandits.cts_b import CTSB
-algorithm = CTSB(environment=env, alpha=1.0, beta=1.0)
-```
-
-#### Updated Labels
-- Plot labels: `'CombTS'` → `'CTS-B'`
-- Test titles: `"CombTS Test"` → `

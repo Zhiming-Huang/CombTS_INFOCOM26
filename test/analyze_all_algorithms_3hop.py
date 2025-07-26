@@ -90,7 +90,7 @@ def analyze_all_algorithms_3hop():
         gamma = alg.split('_')[-1]
         print(f"  gamma={gamma}: {regret:.2f}")
     
-    print("\nCL-SG Family (Combinatorial Linear Stochastic Greedy):")
+    print("\nCL-SG Family (Combinatorial Learning with Single Gaussian):")
     for alg in clsg_algorithms:
         regret = results['algorithms'][alg]['final_regret']
         gamma = alg.split('_')[-1]

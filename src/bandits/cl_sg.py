@@ -4,7 +4,7 @@ from typing import List, Set, Dict, Any
 
 class CLSG:
     """
-    Common-Noise Linearized Stochastic Gaussian (CL-SG) algorithm for combinatorial bandits with sleeping arms.
+    Combinatorial Learning with Single Gaussian (CL-SG) algorithm for combinatorial bandits with sleeping arms.
     
     Each round, generate a single standard Gaussian variable w_t, and for each arm compute:
         \bar{r}_{a, t} = \hat{r}_{a, n_{a, t}} + w_t * sqrt(gamma * ln t / (n_{a, t} + 1))
@@ -107,5 +107,5 @@ class CLSG:
             'posterior_formula': r'\bar{r}_{a, t} = \hat{r}_{a, n_{a, t}} + w_t \sqrt{\frac{\gamma \ln t}{n_{a, t}+1}}',
             'gamma_parameter': self.gamma,
             'optimistic_init': self.optimistic_init,
-            'description': 'CL-SG: Common-noise Gaussian TS with single noise per round and improved variance calculation.'
+            'description': 'CL-SG: Combinatorial Learning with Single Gaussian - uses single noise per round and improved variance calculation.'
         } 

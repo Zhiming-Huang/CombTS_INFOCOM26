@@ -16,13 +16,13 @@ This document summarizes the comprehensive testing of all available bandit algor
 
 ## Algorithms Tested
 
-### 1. CTSB (Combinatorial Thompson Sampling with Beta)
+### 1. CTSB (Combinatorial Thompson Sampling with Beta Prior)
 - **Parameters**: alpha=1.0, beta=1.0
 - **Final Regret**: 41.70
 - **Performance Rank**: 1st
 - **Path Distribution**: 100% 3-hop paths
 
-### 2. CL-SG Family (Combinatorial Linear Stochastic Greedy)
+### 2. CL-SG Family (Combinatorial Learning with Single Gaussian)
 
 #### cl-sg_gamma_0.1
 - **Final Regret**: 187.78
