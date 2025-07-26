@@ -105,7 +105,7 @@ def main():
     if args.mode == 'full':
         print_colored("Running FULL experiments (paper settings)", Colors.YELLOW)
         routing_rounds, routing_runs = 10000, 5
-        ucsb_rounds, ucsb_runs = 10000, 5
+        ucsb_rounds, ucsb_runs = 10000, 10  # Changed to 10 runs
     else:
         print_colored("Running QUICK experiments (reduced settings for testing)", Colors.YELLOW)
         routing_rounds, routing_runs = 1000, 3
@@ -152,13 +152,15 @@ def main():
     print()
     
     ucsb_cmd = (f"python example/example_ucsb_comprehensive_parallel.py "
+               f"--fixed-source 10.1.1.100 "
+               f"--fixed-destination 10.1.1.102 "
+               f"--trace-period 1144393236-1144450070 "
+               f"--max-path-length 3 "
                f"--rounds {ucsb_rounds} "
                f"--runs {ucsb_runs} "
-               f"--num-jobs auto "
-               f"--main-seed 42 "
-               f"--default-gamma 0.1 "
-               f"--execution-mode parallel "
-               f"--progress normal")
+               f"--main-seed 123 "
+               f"--sequential "
+               f"--save-data output/data")
     
     if not run_command(ucsb_cmd, "UCSB mesh network simulation"):
         print_colored("UCSB experiment failed. Exiting...", Colors.RED)

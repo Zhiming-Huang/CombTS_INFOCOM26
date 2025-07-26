@@ -53,7 +53,7 @@ if [ "$MODE" = "full" ]; then
     ROUTING_ROUNDS=10000
     ROUTING_RUNS=5
     UCSB_ROUNDS=10000
-    UCSB_RUNS=5
+    UCSB_RUNS=10  # Changed to 10 runs
 else
     echo -e "${YELLOW}Running QUICK experiments (reduced settings for testing)${NC}"
     ROUTING_ROUNDS=1000
@@ -112,13 +112,15 @@ echo ""
 
 echo -e "${BLUE}Running UCSB mesh network simulation...${NC}"
 python example/example_ucsb_comprehensive_parallel.py \
+    --fixed-source 10.1.1.100 \
+    --fixed-destination 10.1.1.102 \
+    --trace-period 1144393236-1144450070 \
+    --max-path-length 3 \
     --rounds $UCSB_ROUNDS \
     --runs $UCSB_RUNS \
-    --num-jobs auto \
-    --main-seed 42 \
-    --default-gamma 0.1 \
-    --execution-mode parallel \
-    --progress normal
+    --main-seed 123 \
+    --sequential \
+    --save-data output/data
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ UCSB mesh network experiment completed successfully${NC}"
