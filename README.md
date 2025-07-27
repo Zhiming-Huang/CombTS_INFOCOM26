@@ -219,24 +219,12 @@ docker stats
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 📝 Citation
+<!-- ## 📝 Citation
 
-```bibtex
-@inproceedings{combts-infocom26,
-  title={Combinatorial Thompson Sampling for Wireless Network Optimization},
-  author={Authors},
-  booktitle={IEEE INFOCOM 2026},
-  year={2026}
-}
-```
+TODO
 
 ## 🔗 Links
-
-- **Paper**: [arXiv:xxxx.xxxxx](https://arxiv.org/abs/xxxx.xxxxx)
-- **Docker Hub**: [combts-infocom26](https://hub.docker.com/r/combts-infocom26) (if published)
-- **Documentation**: [GitHub Pages](https://username.github.io/CombTS_INFOCOM26)
-
----
+TODO after publis -->
 
 **Quick Start Summary:**
 1. **Docker**: `bash run_docker_experiments.sh quick` (No setup required)
