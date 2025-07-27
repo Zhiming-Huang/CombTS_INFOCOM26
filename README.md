@@ -6,6 +6,22 @@
 
 This repository contains the implementation and experiments for the INFOCOM26 paper on Combinatorial Thompson Sampling algorithms for wireless network optimization.
 
+## 🎯 One-Click to Reproduce All Results in the Paper
+
+**Fastest Way**: Docker (zero setup required)
+```bash
+bash run_docker_experiments.sh full
+```
+
+**Alternative**: Native Python
+```bash
+bash run_experiments.sh full
+```
+
+📊 **What you get**: All experiments, data, and publication-ready plots automatically generated in `output/`
+
+> 📖 **Detailed instructions**: See [HOW_TO_REPRODUCE.md](HOW_TO_REPRODUCE.md) for step-by-step guide
+
 ## 🚀 Quick Start
 
 ### Zero-Setup Docker Reproduction (Recommended)
