@@ -1,4 +1,4 @@
-# CombTS INFOCOM26 - Combinatorial Thompson Sampling for Wireless Networks
+# CombTS INFOCOM26 - Combinatorial Thompson Sampling Implementations with Experiments on Routing
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](Dockerfile)
 [![Python](https://img.shields.io/badge/Python-3.11+-green?logo=python)](requirements.txt)
