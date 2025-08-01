@@ -1,4 +1,4 @@
-# CombTS INFOCOM26 - Combinatorial Thompson Sampling Implementations with Experiments on Routing
+# Bridging the Regret Gap in Combinatorial Thompson Sampling: Worst-Case Guarantees and Algorithmic Refinement (INFOCOM26 - Combinatorial Thompson Sampling Implementations with Routing Experiments)
 
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](Dockerfile)
 [![Python](https://img.shields.io/badge/Python-3.11+-green?logo=python)](requirements.txt)
