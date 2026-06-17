@@ -119,6 +119,7 @@ docker run --rm \
 - **BG-CTS**: Boosted Gaussian-Combinatorial Thompson Sampling  
 - **CTS-G**: Combinatorial Thompson Sampling with Gaussian Priors (γ ∈ {0.01, 0.1, 0.5, 1.0})
 - **CL-SG**: Combinatorial Learning with Single Gaussian (γ ∈ {0.01, 0.1, 0.5, 1.0})
+- **T-CL-SG**: Truncated CL-SG with a MOSS-style radius (γ ∈ {0.01, 0.1, 0.5, 1.0})
 
 ### Generated Results
 
@@ -127,8 +128,10 @@ output/
 ├── data/           # Simulation data (.pkl files)
 └── images/         # Publication-quality plots (.pdf)
     ├── routing_4x4_algorithm_comparison.pdf
+    ├── routing_4x4_tclsg_gamma_comparison.pdf
     ├── routing_4x4_combined_gamma_comparison.pdf
     ├── ucsb_comprehensive_parallel_algorithm_comparison.pdf
+    ├── ucsb_comprehensive_parallel_tclsg_gamma_comparison.pdf
     └── ucsb_comprehensive_parallel_combined_gamma_comparison.pdf
 ```
 

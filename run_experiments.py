@@ -184,7 +184,7 @@ def main():
     print("  - Network: 4×4 mesh topology")
     print("  - Source: node 0, Destination: node 15")
     print("  - Links: 24 arms with 75% availability")
-    print("  - Algorithms: CTSB, CombUCB, BG-CTS, CTS-G, CL-SG")
+    print("  - Algorithms: CTSB, CombUCB, BG-CTS, CTS-G, CL-SG, T-CL-SG")
     print("  - Gamma values: [0.01, 0.1, 0.5, 1.0]")
     print()
     
@@ -208,7 +208,7 @@ def main():
     print("  - Trace period: 1144393236-1144450070")
     print("  - Node pair: 10.1.1.102 → 10.1.1.25")
     print("  - Max path length: 3 hops")
-    print("  - Algorithms: CTSB, CombUCB, BG-CTS, CTS-G, CL-SG")
+    print("  - Algorithms: CTSB, CombUCB, BG-CTS, CTS-G, CL-SG, T-CL-SG")
     print("  - Gamma values: [0.01, 0.1, 0.5, 1.0]")
     print()
     
@@ -249,7 +249,8 @@ def main():
     # Check routing plots
     print("  Routing 4x4 plots:")
     routing_plots = ['algorithm_comparison', 'ctsg_gamma_comparison', 
-                    'clsg_gamma_comparison', 'combined_gamma_comparison']
+                    'clsg_gamma_comparison', 'tclsg_gamma_comparison',
+                    'combined_gamma_comparison']
     for plot in routing_plots:
         filename = f"routing_4x4_{plot}.pdf"
         check_file_exists(images_dir / filename, filename)
@@ -257,7 +258,8 @@ def main():
     # Check UCSB plots
     print("  UCSB mesh network plots:")
     ucsb_plots = ['algorithm_comparison', 'ctsg_gamma_comparison',
-                 'clsg_gamma_comparison', 'combined_gamma_comparison']
+                 'clsg_gamma_comparison', 'tclsg_gamma_comparison',
+                 'combined_gamma_comparison']
     for plot in ucsb_plots:
         filename = f"ucsb_comprehensive_parallel_{plot}.pdf"
         check_file_exists(images_dir / filename, filename)

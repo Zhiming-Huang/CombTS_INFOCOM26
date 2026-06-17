@@ -101,7 +101,8 @@ def plot_regret_comparison(results: Dict[str, Any],
                     'CombUCB': 'CombUCB',
                     'BG-CTS': 'BG-CTS',
                     'CTS-G': 'CTS-G',
-                    'CL-SG': 'CL-SG'
+                    'CL-SG': 'CL-SG',
+                    'T-CL-SG': 'T-CL-SG'
                 }
                 display_name = display_names.get(alg, alg)
             
@@ -165,7 +166,7 @@ def plot_combined_gamma_comparison(results: Dict[str, Any],
     rounds = np.arange(1, num_rounds + 1)
     
     # Define colors and markers for different algorithms and gamma values
-    algorithm_colors = {'CTS-G': plt.cm.Blues, 'CL-SG': plt.cm.Reds}
+    algorithm_colors = {'CTS-G': plt.cm.Blues, 'CL-SG': plt.cm.Reds, 'T-CL-SG': plt.cm.Greens}
     
     # Different markers for each gamma value to improve distinction
     gamma_markers = ['o', 's', '^', 'D']  # circle, square, triangle, diamond
@@ -328,7 +329,7 @@ def plot_all_results(results: Dict[str, Any],
         base_algorithms = ['CTSB', 'CombUCB', 'BG-CTS']
     
     if gamma_algorithms is None:
-        gamma_algorithms = ['CTS-G', 'CL-SG']
+        gamma_algorithms = ['CTS-G', 'CL-SG', 'T-CL-SG']
     
     if gamma_values is None:
         gamma_values = [0.01, 0.1, 0.5, 1.0]
@@ -388,11 +389,12 @@ def plot_routing_algorithm_comparison(results: Dict[str, Any],
     Legacy function for backward compatibility.
     """
     base_algorithms = ['CTSB', 'CombUCB', 'BG-CTS']
-    gamma_algorithms = ['CTS-G', 'CL-SG']
+    gamma_algorithms = ['CTS-G', 'CL-SG', 'T-CL-SG']
     
     comparison_algorithms = base_algorithms.copy()
     comparison_algorithms.append(f"cts-g_gamma_{default_gamma}")
     comparison_algorithms.append(f"cl-sg_gamma_{default_gamma}")
+    comparison_algorithms.append(f"t-cl-sg_gamma_{default_gamma}")
     
     return plot_regret_comparison(results, comparison_algorithms, output_path, title, figsize, use_latex)
 
@@ -409,7 +411,7 @@ def plot_all_routing_results(results: Dict[str, Any],
         results=results,
         output_dir=output_dir,
         base_algorithms=['CTSB', 'CombUCB', 'BG-CTS'],
-        gamma_algorithms=['CTS-G', 'CL-SG'],
+        gamma_algorithms=['CTS-G', 'CL-SG', 'T-CL-SG'],
         gamma_values=gamma_values,
         file_prefix=file_prefix,
         default_gamma=default_gamma

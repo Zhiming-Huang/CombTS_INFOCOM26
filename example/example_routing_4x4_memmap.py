@@ -6,13 +6,13 @@ Example: Routing Environment with 4x4 Mesh Network (Memory-Mapped)
 
 This example demonstrates routing with a 4x4 mesh network topology using memory mapping
 for efficient data storage. It tests all algorithms including multiple gamma values
-for CTS-G and CL-SG algorithms.
+for CTS-G, CL-SG, and T-CL-SG algorithms.
 
 Features:
 - 4x4 mesh network topology modeling using NetworkX
 - Memory-mapped data storage for efficient large-scale simulations
-- Multiple gamma values for CTS-G and CL-SG algorithms
-- All algorithm comparison (CTSB, CombUCB, CTS-G, CL-SG, BG-CTS)
+- Multiple gamma values for CTS-G, CL-SG, and T-CL-SG algorithms
+- All algorithm comparison (CTSB, CombUCB, CTS-G, CL-SG, T-CL-SG, BG-CTS)
 - Path finding and optimization
 - Network visualization
 
@@ -40,6 +40,7 @@ from src.bandits.cts_b import CTSB
 from src.bandits.comb_ucb import CombUCB
 from src.bandits.cts_g import CTSG
 from src.bandits.cl_sg import CLSG
+from src.bandits.truncated_cl_sg import TCLSG
 from src.bandits.bg_cts import BGCTS
 from src.environments.routing_environment import RoutingEnvironment
 from src.utils.plotting import plot_all_routing_results
@@ -134,13 +135,13 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
         num_runs: Number of independent runs
         progress_level: Progress tracking level ("minimal", "normal", "detailed")
         main_seed: Seed for the main random number generator
-        gamma_values: List of gamma values for CTS-G and CL-SG algorithms
+        gamma_values: List of gamma values for CTS-G, CL-SG, and T-CL-SG algorithms
         
     Returns:
         Dictionary containing aggregated results with confidence intervals
     """
     print(f"Running {num_runs} simulations with {num_rounds} rounds each...")
-    print(f"Gamma values for CTS-G and CL-SG: {gamma_values}")
+    print(f"Gamma values for CTS-G, CL-SG, and T-CL-SG: {gamma_values}")
     print(f"Progress level: {progress_level}")
     
     # Create output data directory for memory-mapped files
@@ -150,7 +151,7 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
     
     # Define all algorithms to test
     base_algorithms = ["CTSB", "CombUCB", "BG-CTS"]
-    gamma_algorithms = ["CTS-G", "CL-SG"]
+    gamma_algorithms = ["CTS-G", "CL-SG", "T-CL-SG"]
     
     # Create memory-mapped files for each algorithm
     algorithm_files = {}
@@ -261,6 +262,8 @@ def run_memory_mapped_routing_simulation(num_rounds: int = 10000, num_runs: int 
                     algorithm_instances[alg_key] = CTSG(environment=env, rng=rng_dict[alg_key], gamma=gamma)
                 elif alg == "CL-SG":
                     algorithm_instances[alg_key] = CLSG(environment=env, rng=rng_dict[alg_key], gamma=gamma)
+                elif alg == "T-CL-SG":
+                    algorithm_instances[alg_key] = TCLSG(environment=env, rng=rng_dict[alg_key], gamma=gamma, horizon=num_rounds)
         
         # Run simulation for each algorithm
         for alg_name in algorithm_instances.keys():
@@ -370,7 +373,7 @@ def analyze_routing_results(results: Dict[str, Any], default_gamma=0.1):
     # Get base algorithms and gamma values
     base_algorithms = ["CTSB", "CombUCB", "BG-CTS"]
     gamma_values = results.get('gamma_values', [0.01, 0.1, 0.5, 1.0])
-    gamma_algorithms = ["CTS-G", "CL-SG"]
+    gamma_algorithms = ["CTS-G", "CL-SG", "T-CL-SG"]
     
     num_runs = results['num_runs']
     confidence_level = results['confidence_level']

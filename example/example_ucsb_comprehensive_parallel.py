@@ -12,10 +12,10 @@ Features:
 - Parallel execution of independent algorithms
 - Single environment instance shared across all algorithms
 - NumPy generator with spawn function for reproducible results
-- All algorithm comparison (CTSB, CombUCB, CTS-G, CL-SG, BG-CTS)
+- All algorithm comparison (CTSB, CombUCB, CTS-G, CL-SG, T-CL-SG, BG-CTS)
 - Multiple gamma values (0.01, 0.1, 0.5, 1.0) for gamma algorithms
 - Customizable number of rounds and runs
-- Three plots: algorithm comparison, CTS-G gamma comparison, CL-SG gamma comparison
+- Plots: algorithm comparison, per-algorithm gamma comparisons, and combined gamma comparison
 - Memory-mapped data storage for efficient large-scale simulations
 
 Usage:
@@ -48,6 +48,7 @@ from src.bandits.cts_b import CTSB
 from src.bandits.comb_ucb import CombUCB
 from src.bandits.cts_g import CTSG
 from src.bandits.cl_sg import CLSG
+from src.bandits.truncated_cl_sg import TCLSG
 from src.bandits.bg_cts import BGCTS
 from src.environments.ucsb_meshnet_memmap import UCSBMeshnetMemmapEnvironment
 from src.environments.readonly_environment_wrapper import ReadOnlyEnvironmentWrapper
@@ -282,6 +283,8 @@ def run_single_algorithm(alg_config: Tuple[str, Any, Tuple, int, int, np.random.
             if alg_name.startswith('cl-sg'):
                 # CL-SG needs gamma and optimistic_init parameters
                 alg = alg_class(environment=env, rng=run_generator, gamma=gamma, optimistic_init=True)
+            elif alg_name.startswith('t-cl-sg'):
+                alg = alg_class(environment=env, rng=run_generator, gamma=gamma, horizon=num_rounds, optimistic_init=True)
             elif alg_name.startswith('cts-g'):
                 # CTS-G needs gamma parameter
                 alg = alg_class(environment=env, rng=run_generator, gamma=gamma)
@@ -382,7 +385,8 @@ def run_ucsb_simulation_parallel(env_config: dict,
     
     gamma_algorithms = [
         ('CTS-G', CTSG),
-        ('CL-SG', CLSG)
+        ('CL-SG', CLSG),
+        ('T-CL-SG', TCLSG)
     ]
     
     # Calculate total number of algorithms
@@ -498,7 +502,7 @@ def analyze_ucsb_results(results: Dict[str, Any], default_gamma: float = 0.1):
     # Get base algorithms and gamma values
     base_algorithms = ["CTSB", "CombUCB", "BG-CTS"]
     gamma_values = results.get('gamma_values', [0.01, 0.1, 0.5, 1.0])
-    gamma_algorithms = ["CTS-G", "CL-SG"]
+    gamma_algorithms = ["CTS-G", "CL-SG", "T-CL-SG"]
     
     num_runs = results['num_runs']
     confidence_level = results['confidence_level']
@@ -691,7 +695,7 @@ def plot_from_saved_data(load_path: str, output_dir: str = None):
         results=results,
         output_dir=output_dir,
         base_algorithms=['CTSB', 'CombUCB', 'BG-CTS'],
-        gamma_algorithms=['CTS-G', 'CL-SG'],
+        gamma_algorithms=['CTS-G', 'CL-SG', 'T-CL-SG'],
         gamma_values=gamma_values,
         file_prefix="ucsb_comprehensive_parallel",
         default_gamma=default_gamma
@@ -790,7 +794,7 @@ def main(num_rounds=10000, num_runs=5, default_gamma=0.1, fixed_source="10.1.1.1
         results=results,
         output_dir=output_dir,
         base_algorithms=['CTSB', 'CombUCB', 'BG-CTS'],
-        gamma_algorithms=['CTS-G', 'CL-SG'],
+        gamma_algorithms=['CTS-G', 'CL-SG', 'T-CL-SG'],
         gamma_values=gamma_values,
         file_prefix="ucsb_comprehensive_parallel",
         default_gamma=default_gamma
