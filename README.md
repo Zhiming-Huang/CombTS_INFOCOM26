@@ -128,11 +128,13 @@ output/
 ├── data/           # Simulation data (.pkl files)
 └── images/         # Publication-quality plots (.pdf)
     ├── routing_4x4_algorithm_comparison.pdf
+    ├── routing_4x4_ctsg_gamma_comparison.pdf
+    ├── routing_4x4_clsg_gamma_comparison.pdf
     ├── routing_4x4_tclsg_gamma_comparison.pdf
-    ├── routing_4x4_combined_gamma_comparison.pdf
     ├── ucsb_comprehensive_parallel_algorithm_comparison.pdf
-    ├── ucsb_comprehensive_parallel_tclsg_gamma_comparison.pdf
-    └── ucsb_comprehensive_parallel_combined_gamma_comparison.pdf
+    ├── ucsb_comprehensive_parallel_ctsg_gamma_comparison.pdf
+    ├── ucsb_comprehensive_parallel_clsg_gamma_comparison.pdf
+    └── ucsb_comprehensive_parallel_tclsg_gamma_comparison.pdf
 ```
 
 ## 📊 Visualization Features

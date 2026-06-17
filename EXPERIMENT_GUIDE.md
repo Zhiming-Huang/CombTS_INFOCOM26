@@ -141,18 +141,19 @@ output/
 │   └── ucsb_results_*.pkl
 └── images/         # Generated plots (.pdf files)
     ├── routing_4x4_algorithm_comparison.pdf
+    ├── routing_4x4_ctsg_gamma_comparison.pdf
+    ├── routing_4x4_clsg_gamma_comparison.pdf
     ├── routing_4x4_tclsg_gamma_comparison.pdf
-    ├── routing_4x4_combined_gamma_comparison.pdf
     ├── ucsb_comprehensive_parallel_algorithm_comparison.pdf
-    ├── ucsb_comprehensive_parallel_tclsg_gamma_comparison.pdf
-    └── ucsb_comprehensive_parallel_combined_gamma_comparison.pdf
+    ├── ucsb_comprehensive_parallel_ctsg_gamma_comparison.pdf
+    ├── ucsb_comprehensive_parallel_clsg_gamma_comparison.pdf
+    └── ucsb_comprehensive_parallel_tclsg_gamma_comparison.pdf
 ```
 
 ### Key Plots
 
 1. **Algorithm Comparison**: Performance of all algorithms (CTSB, CombUCB, BG-CTS, CTS-G, CL-SG, T-CL-SG)
-2. **Gamma Comparison**: Effect of different γ values for CTS-G, CL-SG, and T-CL-SG algorithms
-3. **Combined Gamma**: Unified view of both algorithms across all γ values
+2. **Gamma Comparison**: Effect of different γ values for CTS-G, CL-SG, and T-CL-SG, with one plot per algorithm
 
 ## 🔧 Manual Execution
 

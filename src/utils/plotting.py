@@ -356,15 +356,6 @@ def plot_all_results(results: Dict[str, Any],
             title=""  # No title
         )
     
-    # Plot 4: Combined gamma comparison for both algorithms
-    if len(gamma_algorithms) >= 2:
-        plot_combined_gamma_comparison(
-            results=results,
-            algorithm_names=gamma_algorithms,
-            gamma_values=gamma_values,
-            output_path=f"{output_dir}/{file_prefix}_combined_gamma_comparison.pdf"
-        )
-
 
 # Legacy functions for backward compatibility
 def plot_algorithm_comparison(results: Dict[str, Any], 

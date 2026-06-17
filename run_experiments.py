@@ -212,6 +212,7 @@ def main():
     print("  - Gamma values: [0.01, 0.1, 0.5, 1.0]")
     print()
     
+    ucsb_sequential_arg = " --sequential" if args.mode == 'quick' else ""
     ucsb_cmd = (f"python example/example_ucsb_comprehensive_parallel.py "
                f"--fixed-source 10.1.1.100 "
                f"--fixed-destination 10.1.1.102 "
@@ -220,8 +221,8 @@ def main():
                f"--rounds {ucsb_rounds} "
                f"--runs {ucsb_runs} "
                f"--main-seed 123 "
-               f"--sequential "
-               f"--save-data output/data")
+               f"--save-data output/data"
+               f"{ucsb_sequential_arg}")
     
     if not run_command(ucsb_cmd, "UCSB mesh network simulation"):
         print_colored("UCSB experiment failed. Exiting...", Colors.RED)
@@ -248,9 +249,8 @@ def main():
     
     # Check routing plots
     print("  Routing 4x4 plots:")
-    routing_plots = ['algorithm_comparison', 'ctsg_gamma_comparison', 
-                    'clsg_gamma_comparison', 'tclsg_gamma_comparison',
-                    'combined_gamma_comparison']
+    routing_plots = ['algorithm_comparison', 'ctsg_gamma_comparison',
+                    'clsg_gamma_comparison', 'tclsg_gamma_comparison']
     for plot in routing_plots:
         filename = f"routing_4x4_{plot}.pdf"
         check_file_exists(images_dir / filename, filename)
@@ -258,8 +258,7 @@ def main():
     # Check UCSB plots
     print("  UCSB mesh network plots:")
     ucsb_plots = ['algorithm_comparison', 'ctsg_gamma_comparison',
-                 'clsg_gamma_comparison', 'tclsg_gamma_comparison',
-                 'combined_gamma_comparison']
+                 'clsg_gamma_comparison', 'tclsg_gamma_comparison']
     for plot in ucsb_plots:
         filename = f"ucsb_comprehensive_parallel_{plot}.pdf"
         check_file_exists(images_dir / filename, filename)

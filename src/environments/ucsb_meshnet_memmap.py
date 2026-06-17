@@ -167,6 +167,9 @@ class UCSBMeshnetMemmapEnvironment:
         self.arm_to_link = {i: arm for i, arm in enumerate(self.arms)}
         self.link_to_arm = {arm: i for i, arm in enumerate(self.arms)}
         self.max_combination_size = len(self.nodes) - 1
+        self._available_arms_cache = {}
+        self._feasible_combinations_cache = {}
+        self._optimal_reward_cache = {}
 
     def get_available_links_for_round(self, round_idx: int) -> np.ndarray:
         return self.topology_memmap[round_idx]
@@ -176,12 +179,16 @@ class UCSBMeshnetMemmapEnvironment:
         return self.rewards_memmap[round_idx, i, j]
 
     def get_available_arms_for_round(self, round_idx: int):
+        if round_idx in self._available_arms_cache:
+            return list(self._available_arms_cache[round_idx])
+
         adj = self.topology_memmap[round_idx]
         available = []
         for idx, (u, v) in enumerate(self.arms):
             i, j = self.node_idx[u], self.node_idx[v]
             if adj[i, j]:
                 available.append(idx)
+        self._available_arms_cache[round_idx] = tuple(available)
         return available
 
     def get_reward_for_round(self, arm: int, round_idx: int) -> float:
@@ -252,10 +259,14 @@ class UCSBMeshnetMemmapEnvironment:
         Returns:
             Expected reward of the optimal path
         """
+        if round_idx in self._optimal_reward_cache:
+            return self._optimal_reward_cache[round_idx]
+
         available_arms = set(self.get_available_arms_for_round(round_idx))
         feasible_combinations = self.get_feasible_combinations(available_arms)
         
         if not feasible_combinations:
+            self._optimal_reward_cache[round_idx] = 0.0
             return 0.0
         
         # Find the path with maximum expected reward
@@ -265,6 +276,7 @@ class UCSBMeshnetMemmapEnvironment:
             if expected_reward > max_expected_reward:
                 max_expected_reward = expected_reward
         
+        self._optimal_reward_cache[round_idx] = max_expected_reward
         return max_expected_reward
 
     def get_feasible_combinations(self, available_arms: set) -> list:
@@ -274,6 +286,10 @@ class UCSBMeshnetMemmapEnvironment:
         """
         if not available_arms:
             return []
+
+        cache_key = tuple(sorted(available_arms))
+        if cache_key in self._feasible_combinations_cache:
+            return [set(path) for path in self._feasible_combinations_cache[cache_key]]
         
         # Convert available arms to (u, v) edges
         available_edges = set(self.arm_to_link[arm] for arm in available_arms)
@@ -321,6 +337,9 @@ class UCSBMeshnetMemmapEnvironment:
             if path_arms and len(path_arms) <= self.max_combination_size:
                 feasible_combinations.append(path_arms)
         
+        self._feasible_combinations_cache[cache_key] = tuple(
+            tuple(sorted(path_arms)) for path_arms in feasible_combinations
+        )
         return feasible_combinations
 
     def get_nodes(self) -> List[str]:
